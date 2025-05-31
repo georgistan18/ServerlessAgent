@@ -96,9 +96,22 @@ async def generate_research(request: TopicsRequest):
     if not topics:
         return {"error": "No topics provided."}
     
+    # Get current date and yesterday for fresh news focus
+    from datetime import datetime, timedelta
+    today = datetime.now()
+    yesterday = today - timedelta(days=1)
+    today_str = today.strftime("%B %d, %Y")
+    yesterday_str = yesterday.strftime("%B %d, %Y")
+    
     # Compose a prompt by joining the topics
     topics_list = ", ".join(topics)
-    user_prompt = f"Research and analyze these topics comprehensively: {topics_list}. Find connections between them and create a detailed report."
+    user_prompt = (
+        f"Today is {today_str}. I need you to research and analyze these topics comprehensively: {topics_list}. "
+        f"IMPORTANT: Focus specifically on news and events from the last 24 hours (since {yesterday_str}). "
+        f"When searching, please include date filters like 'today', 'yesterday', 'last 24 hours', or specific dates like '{today_str}' and '{yesterday_str}' in your search queries. "
+        f"Find the most recent developments, breaking news, and current events related to these topics. "
+        f"Look for connections between them and create a detailed report emphasizing what's happening RIGHT NOW."
+    )
     
     # Run the research agent
     result = await Runner.run(research_agent, user_prompt)

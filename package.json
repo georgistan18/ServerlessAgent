@@ -1,7 +1,7 @@
 {
   "name": "serverless-agents",
   "version": "0.1.0",
-  "private": true,
+  "description": "A production-ready starter for building AI applications with serverless agents on Vercel, Inngest workflows, and Next.js",
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
