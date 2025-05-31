@@ -39,3 +39,35 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Python specific
+__pycache__
+*.py[cod]
+*.so
+*.egg-info/
+*.egg
+dist/
+build/  # Also a common frontend build dir, ensure it doesn't conflict if Python build output is different
+*.whl
+instance/
+.Python
+
+# Virtual environments
+.venv/
+venv/
+env/
+.env/  # Note: .env* is already covered above, this is more specific to venv dirs
+
+# Log files (general, but good to reinforce for Python)
+*.log
+
+# Testing & Type Checking
+.pytest_cache/
+.mypy_cache/
+.dmypy.json
+htmlcov/ # For coverage reports
+
+# Databases
+*.sqlite3
+*.db3
+.env*.local

@@ -1,36 +1,124 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Serverless Agents - AI Newsletter Generator
 
-## Getting Started
+A Next.js application with Inngest serverless functions and FastAPI Python agents for generating AI-powered newsletters.
 
-First, run the development server:
+## 🚀 Local Development Setup
 
+### Prerequisites
+
+- Node.js 18+ and npm
+- Python 3.9+
+- OpenAI API key
+
+### 1. Install Dependencies
+
+**Frontend (Next.js + Inngest):**
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+**Backend (Python FastAPI):**
+```bash
+pip install -r requirements.txt
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 2. Environment Variables
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Create a `.env.local` file in the root directory:
 
-## Learn More
+```bash
+# OpenAI API Key (required for agents)
+OPENAI_API_KEY=your_openai_api_key_here
 
-To learn more about Next.js, take a look at the following resources:
+# Inngest Configuration (optional for local dev)
+INNGEST_SIGNING_KEY=your_inngest_signing_key
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+# Vercel Blob (for newsletter storage)
+BLOB_READ_WRITE_TOKEN=your_vercel_blob_token
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### 3. Start Development Servers
 
-## Deploy on Vercel
+**Terminal 1 - FastAPI Python Agent:**
+```bash
+uvicorn api.agents:app --reload --reload-dir api --port 8000
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Server will run at: http://localhost:8000
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+**Terminal 2 - Next.js Frontend:**
+```bash
+npm run dev
+```
+
+Frontend will run at: http://localhost:3000
+
+**Terminal 3 - Inngest Dev Server:**
+```bash
+npx inngest-cli@latest dev --no-discovery -u http://localhost:3000/api/inngest
+```
+
+Inngest dashboard will run at: http://localhost:8288
+
+### 4. Testing the System
+
+1. **Test FastAPI Agent directly:**
+   ```bash
+   curl -X POST http://localhost:8000/newsletter \
+     -H "Content-Type: application/json" \
+     -d '{"topics": ["AI", "Climate Tech"]}'
+   ```
+
+2. **Test Inngest Functions:**
+   - Visit http://localhost:8288 for Inngest dashboard
+   - Trigger newsletter generation via your frontend or API
+
+3. **Trigger Newsletter Generation:**
+   ```typescript
+   await inngest.send({
+     name: "newsletter/submit",
+     data: { topics: ["AI", "Startups"], userId: "test-user" }
+   });
+   ```
+
+## 🏗️ Architecture
+
+- **Frontend**: Next.js 15 with TypeScript
+- **Serverless Functions**: Inngest for reliable workflow orchestration
+- **AI Agents**: FastAPI with OpenAI Agents SDK + WebSearch
+- **Storage**: Vercel Blob for generated newsletters
+- **Deployment**: Vercel (both frontend and Python functions)
+
+## 📁 Project Structure
+
+```
+├── src/
+│   ├── app/
+│   │   └── api/inngest/route.ts    # Inngest API endpoint
+│   └── inngest/
+│       ├── client.ts               # Inngest client config
+│       └── functions.ts            # Newsletter generation workflow
+├── api/
+│   └── agents.py                   # FastAPI Python agents
+├── requirements.txt                # Python dependencies
+└── package.json                    # Node.js dependencies
+```
+
+## 🚢 Deployment
+
+Deploy to Vercel with:
+
+```bash
+# Set environment variables
+vercel env add OPENAI_API_KEY
+
+# Deploy (Vercel automatically provides VERCEL_URL)
+vercel --prod
+```
+
+## 📚 Learn More
+
+- [Next.js Documentation](https://nextjs.org/docs)
+- [Inngest Documentation](https://www.inngest.com/docs)
+- [OpenAI Agents SDK](https://github.com/openai/agents)
+- [FastAPI Documentation](https://fastapi.tiangolo.com/)
