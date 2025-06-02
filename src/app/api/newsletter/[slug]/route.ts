@@ -3,10 +3,6 @@ import { inngest } from '@/inngest/client';
 import { put, head } from "@vercel/blob"; // Removed 'del'
 
 const NEWSLETTER_PLACEHOLDER = "__GENERATING_NEWSLETTER_CONTENT__";
-const NEWSLETTER_READ_WRITE_TOKEN = process.env.NEWSLETTER_READ_WRITE_TOKEN;
-if (!NEWSLETTER_READ_WRITE_TOKEN) {
-  throw new Error('NEWSLETTER_READ_WRITE_TOKEN env variable is required');
-}
 
 interface CachedApiResponse {
   status?: 'generating' | 'completed' | 'error'; // Added 'error' to status
@@ -28,6 +24,12 @@ export async function GET(
 
   if (!slug) {
     return NextResponse.json({ error: 'Slug is required' }, { status: 400 });
+  }
+
+  const NEWSLETTER_READ_WRITE_TOKEN = process.env.NEWSLETTER_READ_WRITE_TOKEN;
+  if (!NEWSLETTER_READ_WRITE_TOKEN) {
+    console.error('NEWSLETTER_READ_WRITE_TOKEN environment variable is not set');
+    return NextResponse.json({ error: 'Server configuration error: NEWSLETTER_READ_WRITE_TOKEN not configured' }, { status: 500 });
   }
 
   const blobKey = `newsletters/${slug}.md`;
