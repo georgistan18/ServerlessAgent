@@ -6,6 +6,8 @@ A production-ready starter project demonstrating how to build full-stack applica
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fbrookr%2Fserverless-agents&env=OPENAI_API_KEY,NEWSLETTER_READ_WRITE_TOKEN&envDescription=Configure%20your%20AI%20agents%20and%20storage&envLink=https%3A%2F%2Fgithub.com%2Fbrookr%2Fserverless-agents%23environment-setup&project-name=serverless-agents&repository-name=serverless-agents)
 
+⚠️ **Important**: After deploying, you must configure the Inngest integration in Vercel. See [Deployment Instructions](#-deployment) for details.
+
 ![Architecture Pattern](public/newspaper-icon.svg)
 
 ## 🏗️ Architecture Pattern
@@ -189,21 +191,74 @@ This starter uses a newsletter generator as an example, but the architecture sup
 
 ## 🚢 Deployment
 
-Deploy to Vercel with automatic agent function deployment:
+### One-Click Deploy with Vercel
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fbrookr%2Fserverless-agents&env=OPENAI_API_KEY,NEWSLETTER_READ_WRITE_TOKEN&envDescription=Configure%20your%20AI%20agents%20and%20storage&envLink=https%3A%2F%2Fgithub.com%2Fbrookr%2Fserverless-agents%23environment-setup&project-name=serverless-agents&repository-name=serverless-agents)
+
+1. **Click the Deploy Button**
+   - This will fork the repository to your GitHub account
+   - You'll be prompted to enter the required environment variables:
+     - `OPENAI_API_KEY` - Your OpenAI API key
+     - `NEWSLETTER_READ_WRITE_TOKEN` - Generate this in Vercel Blob storage settings
+
+2. **Configure Inngest Integration** ⚠️ **Critical Step**
+   
+   After deployment completes:
+   - Go to your new project in the Vercel dashboard
+   - Navigate to **Settings** → **Integrations**
+   - Search for and install the **Inngest** integration
+   - Follow the setup wizard to connect your Inngest account
+   - This automatically adds `INNGEST_EVENT_KEY` and `INNGEST_SIGNING_KEY`
+   
+   **Note**: Without this step, the API routes will return 404 errors!
+
+3. **Redeploy Your Project**
+   - After installing Inngest, go to the **Deployments** tab
+   - Click the three dots menu on the latest deployment
+   - Select **Redeploy**
+   - Wait for the deployment to complete
+
+4. **Verify Everything Works**
+   - Visit your deployed site
+   - Try generating a newsletter
+   - Check that all API endpoints respond:
+     - `/api/newsletter/[slug]` - Newsletter generation
+     - `/api/agents/research` - AI research agent
+     - `/api/agents/format` - AI formatting agent
+     - `/api/inngest` - Inngest webhook
+
+### Manual Deployment
+
+If you prefer to deploy manually:
 
 ```bash
+# Clone your fork
+git clone https://github.com/YOUR_USERNAME/serverless-agents
+cd serverless-agents
+
 # Login to Vercel
 vercel login
 
-# Set environment variables
-vercel env add OPENAI_API_KEY
-vercel env add NEWSLETTER_READ_WRITE_TOKEN
-
-# Deploy
+# Deploy (you'll be prompted for env vars)
 vercel --prod
 ```
 
-The Python agents automatically deploy as Vercel Functions without additional configuration.
+Then follow steps 2-4 above to configure Inngest.
+
+### Environment Variables Reference
+
+| Variable | Description | When Added |
+|----------|-------------|------------|
+| `OPENAI_API_KEY` | OpenAI API key for AI agents | During deployment |
+| `NEWSLETTER_READ_WRITE_TOKEN` | Vercel Blob storage token | During deployment |
+| `INNGEST_EVENT_KEY` | Event security key | Auto-added by Inngest |
+| `INNGEST_SIGNING_KEY` | Webhook signing key | Auto-added by Inngest |
+
+### Troubleshooting
+
+- **404 on API routes**: Make sure you've installed the Inngest integration and redeployed
+- **500 on Python agents**: Check that `OPENAI_API_KEY` is set correctly
+- **Newsletter not generating**: Verify all environment variables are present in Vercel dashboard
 
 ## 🔍 Understanding the Architecture
 
