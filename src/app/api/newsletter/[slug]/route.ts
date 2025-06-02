@@ -88,4 +88,7 @@ export async function GET(
     const errorMessage = error instanceof Error ? error.message : 'Failed to process newsletter request.';
     return NextResponse.json({ error: errorMessage, status: 'error', blobUrl: undefined, content: undefined, source: undefined }, { status: 500 });
   }
-} 
+}
+
+// Specify the runtime - Next.js App Router sometimes needs this
+export const runtime = 'nodejs';
