@@ -69,6 +69,14 @@ export default function HomePage() {
                   View on GitHub
                 </Button>
               </a>
+              <a href="https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fbrookr%2Fserverless-agents&env=OPENAI_API_KEY,NEWSLETTER_READ_WRITE_TOKEN&envDescription=Configure%20your%20AI%20agents%20and%20storage&envLink=https%3A%2F%2Fgithub.com%2Fbrookr%2Fserverless-agents%23environment-setup&project-name=serverless-agents&repository-name=serverless-agents" target="_blank" rel="noopener noreferrer">
+                <Button className="bg-pink-500 hover:bg-pink-600 text-white">
+                  <svg className="w-4 h-4 mr-2" viewBox="0 0 76 76" fill="currentColor">
+                    <path d="M37.5274 0L75.0548 65H0L37.5274 0Z" />
+                  </svg>
+                  Deploy with Vercel
+                </Button>
+              </a>
               <a href="https://github.com/brookr/serverless-agents#readme" target="_blank" rel="noopener noreferrer">
                 <Button variant="outline" className="border-slate-600 text-slate-800 hover:text-slate-900 hover:bg-slate-200">
                   📚 Read the Docs
@@ -76,7 +84,7 @@ export default function HomePage() {
               </a>
             </div>
           </div>
-          <div className="hidden md:block relative aspect-video bg-slate-800 rounded-xl shadow-2xl overflow-hidden">
+          <div className="hidden md:block relative aspect-video bg-slate-800 .rounded-xl shadow-2xl overflow-hidden">
             {/* Architecture visualization */}
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="grid grid-cols-2 gap-4 p-8">
@@ -183,6 +191,14 @@ export default function HomePage() {
                 <a href="https://github.com/brookr/serverless-agents" target="_blank" rel="noopener noreferrer">
                   <Button className="bg-pink-500 hover:bg-pink-600">
                     Get Started →
+                  </Button>
+                </a>
+                <a href="https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fbrookr%2Fserverless-agents&env=OPENAI_API_KEY,NEWSLETTER_READ_WRITE_TOKEN&envDescription=Configure%20your%20AI%20agents%20and%20storage&envLink=https%3A%2F%2Fgithub.com%2Fbrookr%2Fserverless-agents%23environment-setup&project-name=serverless-agents&repository-name=serverless-agents" target="_blank" rel="noopener noreferrer">
+                  <Button variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-700">
+                    <svg className="w-4 h-4 mr-2" viewBox="0 0 76 76" fill="currentColor">
+                      <path d="M37.5274 0L75.0548 65H0L37.5274 0Z" />
+                    </svg>
+                    Deploy with Vercel
                   </Button>
                 </a>
               </div>
