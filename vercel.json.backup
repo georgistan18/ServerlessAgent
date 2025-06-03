@@ -4,7 +4,7 @@
     { "src": "api/agents.py", "use": "@vercel/python" }
   ],
   "routes": [
-    { "src": "^/api/agents/(.*)", "dest": "/api/agents.py" },
-    { "src": "^/api/agents$", "dest": "/api/agents.py" }
+    { "src": "^/api/agents/?$", "dest": "/api/agents.py" },
+    { "src": "^/api/agents/(.*)", "dest": "/api/agents.py" }
   ]
 } 

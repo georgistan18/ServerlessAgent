@@ -58,13 +58,38 @@ export const generateNewsletter = inngest.createFunction(
 
 // --- Step implementations below ---
 
+// Helper function to get the Python agent URL
+function getPythonAgentUrl(): string {
+  // Use custom APP_URL if set (recommended approach)
+  if (process.env.APP_URL) {
+    return `${process.env.APP_URL}/api/agents`;
+  }
+  
+  // For local development
+  if (!process.env.VERCEL) {
+    return 'http://localhost:8000';
+  }
+  
+  // For production, use the production URL
+  if (process.env.VERCEL_ENV === 'production' && process.env.VERCEL_PROJECT_PRODUCTION_URL) {
+    return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}/api/agents`;
+  }
+  
+  // For preview deployments, use branch URL
+  if (process.env.VERCEL_BRANCH_URL) {
+    return `https://${process.env.VERCEL_BRANCH_URL}/api/agents`;
+  }
+  
+  // Fallback
+  console.warn('[Inngest] No suitable URL found for Python agent, using deployment URL');
+  return `https://${process.env.VERCEL_URL}/api/agents`;
+}
+
 async function callPythonAgent(topics: string[], slug: string) {
   console.log(`[Inngest] Calling Python research agent for slug ${slug} with topics:`, topics);
   
-  // Use Vercel URL in production, fallback to localhost for development
-  const pythonAgentUrl = process.env.VERCEL_URL 
-    ? `https://${process.env.VERCEL_URL}/api/agents`
-    : 'http://localhost:8000';
+  const pythonAgentUrl = getPythonAgentUrl();
+  console.log(`[Inngest] Using Python agent URL: ${pythonAgentUrl}`);
   
   try {
     const response = await fetch(`${pythonAgentUrl}/research`, {
@@ -98,10 +123,23 @@ async function callPythonAgent(topics: string[], slug: string) {
 async function formatNewsletter(rawContent: string, topics: string[], slug: string) {
   console.log(`[Inngest] Calling formatting agent for slug ${slug}`);
   
-  // Use Vercel URL in production, fallback to localhost for development
-  const pythonAgentUrl = process.env.VERCEL_URL 
-    ? `https://${process.env.VERCEL_URL}/api/agents`
-    : 'http://localhost:8000';
+  // Build the appropriate URL based on environment
+  let pythonAgentUrl: string;
+  if (!process.env.VERCEL) {
+    // Local development
+    pythonAgentUrl = 'http://localhost:8000';
+  } else if (process.env.VERCEL_ENV === 'production' && process.env.VERCEL_PROJECT_PRODUCTION_URL) {
+    // Production environment - use the production URL
+    pythonAgentUrl = `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}/api/agents`;
+  } else if (process.env.VERCEL_BRANCH_URL) {
+    // Preview environment - use the branch URL which is more stable than VERCEL_URL
+    pythonAgentUrl = `https://${process.env.VERCEL_BRANCH_URL}/api/agents`;
+  } else {
+    // Fallback to deployment URL if nothing else is available
+    pythonAgentUrl = `https://${process.env.VERCEL_URL}/api/agents`;
+  }
+  
+  console.log(`[Inngest] Using Python agent URL: ${pythonAgentUrl}`);
   
   try {
     const response = await fetch(`${pythonAgentUrl}/format`, {
