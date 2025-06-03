@@ -63,7 +63,7 @@ async function callPythonAgent(topics: string[], slug: string) {
   
   // Use Vercel URL in production, fallback to localhost for development
   const pythonAgentUrl = process.env.VERCEL_URL 
-    ? `https://${process.env.VERCEL_URL}/api`
+    ? `https://${process.env.VERCEL_URL}/api/agents`
     : 'http://localhost:8000';
   
   try {
@@ -100,7 +100,7 @@ async function formatNewsletter(rawContent: string, topics: string[], slug: stri
   
   // Use Vercel URL in production, fallback to localhost for development
   const pythonAgentUrl = process.env.VERCEL_URL 
-    ? `https://${process.env.VERCEL_URL}/api`
+    ? `https://${process.env.VERCEL_URL}/api/agents`
     : 'http://localhost:8000';
   
   try {

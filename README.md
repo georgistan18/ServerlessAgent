@@ -202,14 +202,14 @@ This starter uses a newsletter generator as an example, but the architecture sup
      - `NEWSLETTER_READ_WRITE_TOKEN` - Generate this in Vercel Blob storage settings
 
 2. **Configure Inngest Integration** ⚠️ **Critical Step**
-   
+
    After deployment completes:
    - Go to your new project in the Vercel dashboard
    - Navigate to **Settings** → **Integrations**
    - Search for and install the **Inngest** integration
    - Follow the setup wizard to connect your Inngest account
    - This automatically adds `INNGEST_EVENT_KEY` and `INNGEST_SIGNING_KEY`
-   
+
    **Note**: Without this step, the API routes will return 404 errors!
 
 3. **Redeploy Your Project**

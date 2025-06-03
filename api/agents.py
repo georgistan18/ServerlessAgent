@@ -1,14 +1,23 @@
 import os
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from agents import Agent, Runner, WebSearchTool, ModelSettings
+import sys
+import traceback
 
-# Note: You'll need to install these via requirements.txt
-# from agents import Agent, Runner, WebSearchTool
+# Try to import agents and catch any errors
+try:
+    from agents import Agent, Runner, WebSearchTool, ModelSettings
+except ImportError as e:
+    print(f"Import error: {e}", file=sys.stderr)
+    print(f"Python path: {sys.path}", file=sys.stderr)
+    print(f"Installed packages: {[p for p in sys.modules.keys()]}", file=sys.stderr)
+    raise
 
 # Load OpenAI API key from environment
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-assert OPENAI_API_KEY, "OPENAI_API_KEY must be set"
+if not OPENAI_API_KEY:
+    print("OPENAI_API_KEY not found in environment variables", file=sys.stderr)
+    raise ValueError("OPENAI_API_KEY must be set")
 
 # Define request schemas
 class TopicsRequest(BaseModel):
@@ -20,6 +29,17 @@ class FormatRequest(BaseModel):
 
 # Initialize FastAPI
 app = FastAPI(title="AI Newsletter Agents")
+
+@app.get("/")
+async def health_check():
+    """Health check endpoint for debugging"""
+    return {
+        "status": "ok",
+        "openai_api_key_set": bool(OPENAI_API_KEY),
+        "vercel_url": os.getenv("VERCEL_URL", "not set"),
+        "python_version": sys.version,
+        "agents_imported": "agents" in sys.modules,
+    }
 
 # First Agent: Research and Content Generation
 research_agent = Agent(
