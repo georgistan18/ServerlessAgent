@@ -86,10 +86,7 @@ function getPythonAgentUrl(): string {
 }
 
 async function callPythonAgent(topics: string[], slug: string) {
-  console.log(`[Inngest] Calling Python research agent for slug ${slug} with topics:`, topics);
-  
   const pythonAgentUrl = getPythonAgentUrl();
-  console.log(`[Inngest] Using Python agent URL: ${pythonAgentUrl}`);
   
   try {
     const response = await fetch(`${pythonAgentUrl}/research`, {
@@ -112,7 +109,6 @@ async function callPythonAgent(topics: string[], slug: string) {
       throw new Error('Research agent returned no content');
     }
 
-    console.log(`[Inngest] Research agent success for slug ${slug}. Content length: ${content.length}`);
     return content;
   } catch (error) {
     console.error(`[Inngest] Research agent error for slug ${slug}:`, error);
@@ -121,8 +117,6 @@ async function callPythonAgent(topics: string[], slug: string) {
 }
 
 async function formatNewsletter(rawContent: string, topics: string[], slug: string) {
-  console.log(`[Inngest] Calling formatting agent for slug ${slug}`);
-  
   // Build the appropriate URL based on environment
   let pythonAgentUrl: string;
   if (!process.env.VERCEL) {
@@ -138,8 +132,6 @@ async function formatNewsletter(rawContent: string, topics: string[], slug: stri
     // Fallback to deployment URL if nothing else is available
     pythonAgentUrl = `https://${process.env.VERCEL_URL}/api/agents`;
   }
-  
-  console.log(`[Inngest] Using Python agent URL: ${pythonAgentUrl}`);
   
   try {
     const response = await fetch(`${pythonAgentUrl}/format`, {
@@ -165,7 +157,6 @@ async function formatNewsletter(rawContent: string, topics: string[], slug: stri
       throw new Error('Formatting agent returned no content');
     }
 
-    console.log(`[Inngest] Formatting agent success for slug ${slug}. Content length: ${content.length}`);
     return content;
   } catch (error) {
     console.error(`[Inngest] Formatting agent error for slug ${slug}:`, error);
@@ -185,7 +176,6 @@ async function saveNewsletterToBlob(blobKey: string, rawAgentContent: string, sl
       token: NEWSLETTER_READ_WRITE_TOKEN,
       allowOverwrite: true,
     });
-    console.log(`[Inngest] Newsletter saved to blob for slug ${slug}. URL: ${blob.url}`);
     return blob;
   } catch (error) {
     console.error(`[Inngest] Error saving to blob for slug ${slug}:`, error);

@@ -54,7 +54,6 @@ const CircularProgress = ({ progress, size = 24 }: { progress: number; size?: nu
 };
 
 export default function NewsletterPage() {
-  console.log('NewsletterPage mounted');
   const params = useParams();
   const slug = params?.slug as string | undefined;
   const [newsletterContent, setNewsletterContent] = useState<string | null>(null);
@@ -81,15 +80,12 @@ export default function NewsletterPage() {
     }
     
     try {
-      console.log('Fetching API route for slug:', slug);
       const res = await fetch(`/api/newsletter/${slug}`);
-      console.log('API response for slug:', slug, 'status:', res.status);
       if (!res.ok) {
         const errData = await res.json();
         throw new Error(errData.error || `Failed to initiate newsletter generation.`);
       }
       const data = await res.json();
-      console.log('API data for slug:', slug, data);
       if (data.error) {
         setError(data.error);
         setIsLoading(false);
@@ -118,17 +114,13 @@ export default function NewsletterPage() {
         }
       } else if (data.status === 'completed' && data.blobUrl) {
         // Fetch the content from the blob URL
-        console.log('Fetching content from blob URL:', data.blobUrl);
         try {
           const blobRes = await fetch(data.blobUrl);
-          console.log('Blob fetch response status:', blobRes.status);
           if (!blobRes.ok) throw new Error("Failed to fetch newsletter content from blob.");
           const content = await blobRes.text();
-          console.log('Blob content length:', content.length, 'First 100 chars:', content.substring(0, 100));
           
           // Check if content is still placeholder
           if (content === NEWSLETTER_PLACEHOLDER) {
-            console.log('Content is still placeholder, treating as generating');
             setIsGenerating(true);
             setIsLoading(false);
             // Start countdown for placeholder case too, only if not already running

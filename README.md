@@ -114,6 +114,7 @@ npx inngest-cli@latest dev --no-discovery -u http://localhost:3000/api/inngest
 ├── api/
 │   └── agents.py               # FastAPI agent definitions
 ├── public/                     # Static assets
+├── vercel.json                # Vercel routing configuration
 ├── requirements.txt            # Python dependencies
 └── package.json               # Node.js dependencies
 ```
@@ -159,6 +160,25 @@ API routes in `src/app/api/` demonstrate the integration pattern:
 - Webhook endpoint for Inngest
 - Status checking endpoints
 - Trigger endpoints for workflows
+
+### 4. Vercel Configuration
+
+The `vercel.json` file is critical for proper Python API routing. Build python after NextJS, and configure the routes to point to the python file:
+
+```json
+{
+  "builds": [
+    { "src": "package.json", "use": "@vercel/next" },
+    { "src": "api/agents.py", "use": "@vercel/python" }
+  ],
+  "routes": [
+    { "src": "^/api/agents/(.*)", "dest": "/api/agents.py" },
+    { "src": "^/api/agents$", "dest": "/api/agents.py" }
+  ]
+}
+```
+
+This configuration ensures that all `/api/agents/*` paths are routed to your Python FastAPI application.
 
 ## 🎨 Customizing for Your Use Case
 
@@ -223,6 +243,7 @@ This starter uses a newsletter generator as an example, but the architecture sup
    - Try generating a newsletter
    - Check that all API endpoints respond:
      - `/api/newsletter/[slug]` - Newsletter generation
+     - `/api/agents/ping` - Python API health check
      - `/api/agents/research` - AI research agent
      - `/api/agents/format` - AI formatting agent
      - `/api/inngest` - Inngest webhook

@@ -18,14 +18,12 @@ class FormatRequest(BaseModel):
     raw_content: str
     topics: list[str]
 
-# Initialize FastAPI with root path for Vercel routing
-# When deployed on Vercel, requests to /api/agents/* are routed to this app
-# The root_path tells FastAPI to expect the /api/agents prefix
+# Initialize FastAPI app with root path for Vercel
 app = FastAPI(title="AI Newsletter Agents", root_path="/api/agents")
 
 @app.get("/ping")
 async def health_check():
-    """Health check endpoint for debugging"""
+    """Health check endpoint"""
     return {
         "status": "ok",
         "openai_api_key_set": bool(OPENAI_API_KEY),
@@ -34,10 +32,10 @@ async def health_check():
         "agents_imported": "agents" in sys.modules,
     }
 
-# First Agent: Research and Content Generation
+# Research Agent: Searches web and generates newsletter content
 research_agent = Agent(
     name="Research Agent",
-    model="gpt-4.1", # This is OpenAI's latest model, don't change it. We will use it with the default temperature settings.
+    model="gpt-4.1",
     instructions=(
         "You are an AI assistant that creates insightful, well-connected newsletters on a set of given topics.\n\n"
         "Your process:\n"
@@ -74,7 +72,7 @@ research_agent = Agent(
     tools=[ WebSearchTool() ]
 )
 
-# Second Agent: Markdown Formatting and Enhancement
+# Formatting Agent: Transforms content into polished markdown
 formatting_agent = Agent(
     name="Formatting Agent", 
     model="o3",
@@ -100,7 +98,7 @@ formatting_agent = Agent(
         "5. The output should be publication-ready markdown that looks professional when rendered\n\n"
         "Transform the content into an engaging, visually appealing newsletter while preserving all information."
     ),
-    tools=[]  # No tools needed for formatting
+    tools=[]
 )
 
 @app.post("/research")
