@@ -21,7 +21,7 @@ class FormatRequest(BaseModel):
 # Initialize FastAPI with root path for Vercel routing
 # When deployed on Vercel, requests to /api/agents/* are routed to this app
 # The root_path tells FastAPI to expect the /api/agents prefix
-app = FastAPI(title="AI Newsletter Agents")
+app = FastAPI(title="AI Newsletter Agents", root_path="/api/agents")
 
 @app.get("/ping")
 async def health_check():
