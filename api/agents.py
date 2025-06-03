@@ -1,17 +1,8 @@
 import os
+import sys
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-import sys
-import traceback
-
-# Try to import agents and catch any errors
-try:
-    from agents import Agent, Runner, WebSearchTool, ModelSettings
-except ImportError as e:
-    print(f"Import error: {e}", file=sys.stderr)
-    print(f"Python path: {sys.path}", file=sys.stderr)
-    print(f"Installed packages: {[p for p in sys.modules.keys()]}", file=sys.stderr)
-    raise
+from agents import Agent, Runner, WebSearchTool, ModelSettings
 
 # Load OpenAI API key from environment
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -157,5 +148,6 @@ async def format_newsletter(request: FormatRequest):
     
     return {"content": formatted_content}
 
-# Vercel serverless function handler
-handler = app 
+# IMPORTANT: Handler for Vercel serverless functions
+# Vercel's Python runtime will automatically handle FastAPI apps
+# No additional configuration needed - just export the 'app' variable
