@@ -43,6 +43,7 @@ research_agent = Agent(
     instructions=(
         #todo: hallucination
         #perplexity
+        #how do they interact with each other (models)
         "You are an AI assistant that creates comprehensive company analysis reports.\n\n"
         "Your process:\n"
         "1. Search the web comprehensively for information about the given company:\n"
@@ -98,7 +99,7 @@ research_agent = Agent(
 # Formatting Agent: Transforms content into polished markdown
 formatting_agent = Agent(
     name="Formatting Agent", 
-    model="o3",
+    model="gpt-4.1",
     instructions=(
         "You are an expert editor and markdown formatter who transforms research content into beautiful, readable newsletters.\n\n"
         "Your task:\n"
