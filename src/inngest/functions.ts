@@ -19,6 +19,7 @@ export const generateNewsletter = inngest.createFunction(
   { id: "generate-newsletter" },
   { event: "newsletter/generate.requested" },
   async ({ event, step }: { event: { data: NewsletterGenerateRequestedData }; step: unknown }) => {
+    console.log("Generating newsletter for slug:", event.data.slug);
     const { topics, slug, blobKey } = event.data;
     if (!topics || !slug || !blobKey) {
       throw new Error("Missing topics, slug, or blobKey in event data.");

@@ -83,7 +83,7 @@ export default function NewsletterPage() {
       const res = await fetch(`/api/newsletter/${slug}`);
       if (!res.ok) {
         const errData = await res.json();
-        throw new Error(errData.error || `Failed to initiate newsletter generation.`);
+        throw new Error(errData.error || `Failed to initiate company analysis generation.`);
       }
       const data = await res.json();
       if (data.error) {
@@ -116,7 +116,7 @@ export default function NewsletterPage() {
         // Fetch the content from the blob URL
         try {
           const blobRes = await fetch(data.blobUrl);
-          if (!blobRes.ok) throw new Error("Failed to fetch newsletter content from blob.");
+          if (!blobRes.ok) throw new Error("Failed to fetch company analysis content from blob.");
           const content = await blobRes.text();
           
           // Check if content is still placeholder
@@ -159,7 +159,7 @@ export default function NewsletterPage() {
       if (err instanceof Error) {
         setError(err.message);
       } else {
-        setError("Failed to retrieve newsletter due to an unknown error.");
+        setError("Failed to retrieve company analysis due to an unknown error.");
       }
       setIsLoading(false);
     }
@@ -273,7 +273,7 @@ export default function NewsletterPage() {
         {!isLoading && !error && isGenerating && (
           <div className="flex flex-col items-center justify-center text-center py-20">
             <Spinner />
-            <p className="mt-4 text-xl text-slate-300">Generating your newsletter for: <span className='font-semibold text-pink-400'>{topicsDisplay}</span>...</p>
+            <p className="mt-4 text-xl text-slate-300">Generating your company analysis for: <span className='font-semibold text-pink-400'>{topicsDisplay}</span>...</p>
             <p className="text-sm text-slate-500 mb-4">This might take a moment. We&apos;ll auto-refresh in 5 seconds to see if it&apos;s ready.</p>
             <button
               onClick={() => window.location.reload()}
@@ -295,7 +295,7 @@ export default function NewsletterPage() {
               {/* Header Section */}
               <div className="bg-slate-900/80 p-6 sm:p-8 md:p-10 border-b border-slate-700">
                 <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-pink-400 leading-tight">
-                  {generatedTitle || `Your Newsletter on: ${topicsDisplay}`}
+                  {generatedTitle || `Your company analysis on: ${topicsDisplay}`}
                 </h1>
                 <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:gap-4 text-sm text-slate-400">
                   <div>
@@ -327,7 +327,7 @@ export default function NewsletterPage() {
                 {/* Footer with CTA */}
                 <div className="mt-12 pt-8 border-t border-slate-700">
                   <Link href="/" className="inline-block px-8 py-3 bg-pink-500 hover:bg-pink-600 rounded-md text-white font-medium text-lg transition-colors">
-                    Create New Newsletter
+                    Create New Company Analysis
                   </Link>
                 </div>
               </div>
@@ -336,9 +336,9 @@ export default function NewsletterPage() {
         )}
          {!isLoading && !error && !newsletterContent && !isGenerating && (
           <div className="text-center py-20">
-            <h2 className="text-2xl font-semibold text-slate-400">No content found for this newsletter.</h2>
+            <h2 className="text-2xl font-semibold text-slate-400">No content found for this company analysis.</h2>
              <Link href="/" className="mt-6 px-6 py-2 bg-pink-500 hover:bg-pink-600 rounded-md text-white font-medium">
-              Generate New Newsletter
+              Generate new company analysis
             </Link>
           </div>
         )}
