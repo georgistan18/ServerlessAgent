@@ -1,5 +1,9 @@
 import os
 import sys
+
+from dotenv import load_dotenv
+load_dotenv(".env.local")
+
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from agents import Agent, Runner, WebSearchTool, ModelSettings
@@ -19,7 +23,7 @@ class FormatRequest(BaseModel):
     topics: list[str]
 
 # Initialize FastAPI app with root path for Vercel
-app = FastAPI(title="AI Newsletter Agents", root_path="/api/agents")
+app = FastAPI(title="AI Company Analysis Agents", root_path="/api/agents")
 
 @app.get("/ping")
 async def health_check():
@@ -32,42 +36,59 @@ async def health_check():
         "agents_imported": "agents" in sys.modules,
     }
 
-# Research Agent: Searches web and generates newsletter content
+# Research Agent: Searches web and generates company analysis
 research_agent = Agent(
     name="Research Agent",
     model="gpt-4.1",
     instructions=(
-        "You are an AI assistant that creates insightful, well-connected newsletters on a set of given topics.\n\n"
+        "You are an AI assistant that creates comprehensive company analysis reports.\n\n"
         "Your process:\n"
-        "1. Search the web comprehensively for the latest news and information on each one of the given topics individually:\n"
-        "   - Perform multiple searches with different query variations to ensure broad coverage\n"
-        "   - Look for recent articles (prioritize content from the last 7-30 days)\n"
-        "   - Search for both general news and specific expert analysis\n"
-        "   - If initial results are insufficient, refine your search queries and search again\n"
-        "2. Repeat the same approach to search for the other topics given\n"
-        "3. For each topic, analyze the articles to identify connections, patterns, and relationships between them.\n"
-        "4. Create a cohesive narrative that explains how these articles relate to each other.\n\n"
+        "1. Search the web comprehensively for information about the given company:\n"
+        "   - Company overview and history\n"
+        "   - Recent financial performance and stock data\n"
+        "   - Latest news and developments\n"
+        "   - Market position and competitors\n"
+        "   - Key products/services\n"
+        "   - Leadership team and organizational structure\n"
+        "   - Future outlook and strategic initiatives\n"
+        "2. Perform multiple searches with different query variations to ensure broad coverage\n"
+        "3. Prioritize recent information (last 30 days) but include historical context\n"
+        "4. Look for both general news and specific expert analysis\n"
+        "5. If initial results are insufficient, refine your search queries and search again\n\n"
         "Your output structure:\n"
-        "**[Create a compelling title that captures the essence of how all topics connect]**\n\n"
-        "*[Write one impactful sentence that summarizes the key relationship or theme connecting all the topics]*\n\n"
+        "**[Company Name] - Comprehensive Analysis**\n\n"
+        "*[One impactful sentence summarizing the company's current position and outlook]*\n\n"
         "**Executive Summary**\n"
-        "Start with a compelling 2-3 paragraph summary that:\n"
-        "- Identifies the main themes across all articles\n"
-        "- Explains the connections and relationships between different pieces of information\n"
-        "- Highlights why these connections matter\n"
-        "- Provides context for how these topics intersect\n\n"
-        "**Key Insights**\n"
-        "- List 3-5 major insights that emerge from analyzing these articles together\n"
-        "- Explain how different sources complement or contradict each other\n\n"
-        "**Detailed Analysis**\n"
-        "For each major theme or connection:\n"
-        "- Provide specific examples from the articles\n"
-        "- Include relevant facts, figures, and quotes\n"
-        "- Cite sources properly\n\n"
-        "**Conclusion**\n"
-        "Synthesize everything into a forward-looking paragraph about implications and trends.\n\n"
-        "Use clear, engaging language throughout.\n"
-        "Focus on creating a narrative that shows how these topics interconnect rather than just listing summaries."
+        "A concise 2-3 paragraph overview that:\n"
+        "- Summarizes the company's core business and market position\n"
+        "- Highlights recent significant developments\n"
+        "- Outlines key challenges and opportunities\n\n"
+        "**Company Overview**\n"
+        "- Brief history and founding story\n"
+        "- Core business model and main products/services\n"
+        "- Key markets and customer segments\n\n"
+        "**Recent Developments**\n"
+        "- Latest news and announcements\n"
+        "- Recent financial performance\n"
+        "- Strategic initiatives and partnerships\n\n"
+        "**Market Position**\n"
+        "- Competitive landscape\n"
+        "- Market share and industry standing\n"
+        "- Key differentiators\n\n"
+        "**Leadership & Organization**\n"
+        "- Key executives and their backgrounds\n"
+        "- Organizational structure\n"
+        "- Corporate culture highlights\n\n"
+        "**Future Outlook**\n"
+        "- Growth strategies and initiatives\n"
+        "- Potential challenges and risks\n"
+        "- Market opportunities\n\n"
+        "**Key Metrics & Financials**\n"
+        "- Recent financial highlights\n"
+        "- Important KPIs\n"
+        "- Stock performance (if public)\n\n"
+        "Use clear, professional language throughout.\n"
+        "Focus on providing actionable insights and a balanced view of the company's position."
     ),
     tools=[ WebSearchTool() ]
 )
@@ -75,7 +96,7 @@ research_agent = Agent(
 # Formatting Agent: Transforms content into polished markdown
 formatting_agent = Agent(
     name="Formatting Agent", 
-    model="o3",
+    model="gpt-4.1",
     instructions=(
         "You are an expert editor and markdown formatter who transforms research content into beautiful, readable newsletters.\n\n"
         "Your task:\n"
@@ -115,13 +136,13 @@ async def generate_research(request: TopicsRequest):
     yesterday_str = yesterday.strftime("%B %d, %Y")
     
     # Compose a prompt by joining the topics
-    topics_list = ", ".join(topics)
+    company_name = ", ".join(topics)
     user_prompt = (
-        f"Today is {today_str}. I need you to research and analyze these topics comprehensively: {topics_list}. "
-        f"IMPORTANT: Focus specifically on news and events from the last 24 hours (since {yesterday_str}). "
-        f"When searching, please include date filters like 'today', 'yesterday', 'last 24 hours', or specific dates like '{today_str}' and '{yesterday_str}' in your search queries. "
-        f"Find the most recent developments, breaking news, and current events related to these topics. "
-        f"Look for connections between them and create a detailed report emphasizing what's happening RIGHT NOW."
+        f"Today is {today_str}. I need you to research and analyze {company_name} comprehensively. "
+        f"IMPORTANT: Focus on recent developments from the last 30 days (since {yesterday_str}), but also include historical context. "
+        f"When searching, please include date filters like 'today', 'yesterday', 'last 30 days', or specific dates like '{today_str}' and '{yesterday_str}' in your search queries. "
+        f"Find the most recent developments, financial data, and current events related to {company_name}. "
+        f"Create a detailed company analysis report emphasizing what's happening RIGHT NOW while providing necessary historical context."
     )
     
     # Run the research agent
@@ -133,14 +154,15 @@ async def generate_research(request: TopicsRequest):
 @app.post("/format")
 async def format_newsletter(request: FormatRequest):
     raw_content = request.raw_content
-    topics = request.topics
+    
+    company_name = request.topics[0]
+    
     
     if not raw_content:
         return {"error": "No content provided."}
     
     # Create formatting prompt
-    topics_list = ", ".join(topics)
-    user_prompt = f"Transform this research content into a beautifully formatted newsletter about {topics_list}. Apply professional markdown formatting:\n\n{raw_content}"
+    user_prompt = f"Transform this research content into a beautifully formatted company analysis report for {company_name}. Apply professional markdown formatting:\n\n{raw_content}"
     
     # Run the formatting agent
     result = await Runner.run(formatting_agent, user_prompt)
