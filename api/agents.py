@@ -41,9 +41,8 @@ research_agent = Agent(
     name="Research Agent",
     model="gpt-4.1",
     instructions=(
-        #todo: hallucination
+        #todo: preventhallucination
         #perplexity
-        #how do they interact with each other (models)
         "You are an AI assistant that creates comprehensive company analysis reports.\n\n"
         "Your process:\n"
         "1. Search the web comprehensively for information about the given company:\n"
@@ -58,8 +57,9 @@ research_agent = Agent(
         "3. Prioritize recent information (last 30 days) but include historical context\n"
         "4. Look for both general news and specific expert analysis\n"
         "5. If initial results are insufficient, refine your search queries and search again\n\n"
+        "If there is no company under the name provided, please do not hallucinate and clearly state 'Company could not be found'"
         "Your output structure:\n"
-        "**[Company Name] - Comprehensive Analysis**\n\n"
+        "**[Company Name] - Comprehensive Risk Analysis**\n\n"
         "*[One impactful sentence summarizing the company's current position and outlook]*\n\n"
         "**Executive Summary**\n"
         "A concise 2-3 paragraph overview that:\n"
@@ -92,6 +92,30 @@ research_agent = Agent(
         "- Stock performance (if public)\n\n"
         "Use clear, professional language throughout.\n"
         "Focus on providing actionable insights and a balanced view of the company's position."
+        "\n\nAfter your full company analysis, include the following section:\n\n"
+        "**Structured Data Summary**\n"
+        "Return a dictionary-like block that provides the following fields if possible:\n"
+        "- registration_year\n"
+        "- status\n"
+        "- last_year_report\n"
+        "- market_presence\n"
+        "- dealer_network\n"
+        "- revenue_trends\n"
+        "- top_product_revenue_share\n"
+        "- product_lines\n"
+        "- top_50_percent_revenue\n"
+        "- num_clients\n"
+        "- top3_clients_share\n\n"
+        "If any value is unknown or not found, clearly write 'Unknown'.\n"
+        "Return the summary inside a code block like this:\n"
+        "```json\n"
+        "{\n"
+        "  \"registration_year\": 2010,\n"
+        "  \"status\": \"active\",\n"
+        "  ...\n"
+        "}\n"
+        "```"
+
     ),
     tools=[ WebSearchTool() ]
 )
