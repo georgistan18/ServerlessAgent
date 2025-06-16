@@ -99,7 +99,8 @@ research_agent = Agent(
 # Formatting Agent: Transforms content into polished markdown
 formatting_agent = Agent(
     name="Formatting Agent", 
-    model="gpt-4.1",
+    # model="gpt-4.1",
+    model='o3',
     instructions=(
         "You are an expert editor and markdown formatter who transforms research content into beautiful, readable newsletters.\n\n"
         "Your task:\n"
