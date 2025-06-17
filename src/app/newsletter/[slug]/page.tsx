@@ -119,25 +119,25 @@ export default function NewsletterPage() {
   const [structuredData, setStructuredData] = useState<StructuredData | null>(null);
   const countdownIntervalRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
-  const startCountdown = () => {
-    setIsCountingDown(true);
-    setCountdown(5);
-    if (countdownIntervalRef.current) {
-      clearInterval(countdownIntervalRef.current);
-    }
-    countdownIntervalRef.current = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          if (countdownIntervalRef.current) {
-            clearInterval(countdownIntervalRef.current);
-          }
-          setIsCountingDown(false);
-          return 5;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-  };
+  // const startCountdown = () => {
+  //   setIsCountingDown(true);
+  //   setCountdown(5);
+  //   if (countdownIntervalRef.current) {
+  //     clearInterval(countdownIntervalRef.current);
+  //   }
+  //   countdownIntervalRef.current = setInterval(() => {
+  //     setCountdown((prev) => {
+  //       if (prev <= 1) {
+  //         if (countdownIntervalRef.current) {
+  //           clearInterval(countdownIntervalRef.current);
+  //         }
+  //         setIsCountingDown(false);
+  //         return 5;
+  //       }
+  //       return prev - 1;
+  //     });
+  //   }, 1000);
+  // };
 
   const fetchNewsletterStatus = useCallback(async () => {
     if (!slug) return;
