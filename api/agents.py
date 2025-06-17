@@ -1,3 +1,5 @@
+# Holds the RULES dictionary with prompt templates, criteria metadata, and maps everything together
+
 import os
 import sys
 
@@ -7,6 +9,10 @@ load_dotenv(".env.local")
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from agents import Agent, Runner, WebSearchTool, ModelSettings
+
+# givve access to the rule evaluation and prompt templates
+from .rules.rules_logic import RULES
+from .rules.rule_engine import evaluate_rule
 
 # Load OpenAI API key from environment
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -203,15 +209,52 @@ async def generate_research(request: TopicsRequest):
 
     structured_data = extract_json_from_markdown(raw_content)
 
+    if not structured_data:
+        return {
+            "content": raw_content,
+            "structured_data": None,
+            "flags": None,
+            "risk_summary": None,
+            "error": "Structured JSON could not be parsed."
+        }
+
+    # apply rules to structured data
+    flags = {}
+    explanations = []
+
+    for key, rule in RULES.items():
+        try:
+            flag = evaluate_rule(key, structured_data)
+            flags[key] = flag
+
+            # create explanation using prompt template for each rule
+            explanation = rule["prompt_template"].format(flag=flag, **structured_data)
+            explanations.append(f"### {rule['name']} ({flag})\n{explanation}")
+        except Exception as e:
+            flags[key] = "Error"
+            explanations.append(f"### {rule['name']} (Error:\n{str(e)})\n\n")
+
+    # create a summary prompt for the AI agent to generate a markdown section
+    summary_prompt = (
+        "Based on the following company evaluation flags, write a markdown risk summary section explaining each risk in plain English. "
+        "Use 🚩 for 'Review', ⚠️ for 'Monitor', ✅ for 'OK'. Format nicely with headers and bullet points if needed.\n\n"
+    + "\n\n".join(explanations)
+    )
+
+    # ask the formatting agent to turn the above into a markdown section
+    summary_result = await Runner.run(formatting_agent, summary_prompt)
+    risk_summary = summary_result.final_output
+
+    # return everything
     return {
         "content": raw_content,
         "structured_data": structured_data,
-        "flags": None,  # APPLY RULE LOGIC HERE LATER
-        "error": None if structured_data else "Structured JSON could not be parsed."
+        "flags": flags,
+        "risk_summary": risk_summary,
+        "error": None
     }
-    # apply rules to structured data
-
-
+    
+            
 @app.post("/format")
 async def format_newsletter(request: FormatRequest):
     raw_content = request.raw_content

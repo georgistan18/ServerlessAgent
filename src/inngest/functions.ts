@@ -14,6 +14,11 @@ interface NewsletterGenerateRequestedData {
   topics: string[];
 }
 
+interface PythonAgentResponse {
+  content: string;
+  riskSummary: string;
+}
+
 // Main Inngest function with multi-step workflow
 export const generateNewsletter = inngest.createFunction(
   { id: "generate-newsletter" },
@@ -34,10 +39,10 @@ export const generateNewsletter = inngest.createFunction(
 
     // Step 1: Call Python Agent
     const rawAgentContentUnknown = await step.run("call-python-agent", () => callPythonAgent(topics, slug));
-    if (typeof rawAgentContentUnknown !== 'string') {
-      throw new Error('Python agent did not return a string');
+    if (!rawAgentContentUnknown || typeof rawAgentContentUnknown !== 'object' || !('content' in rawAgentContentUnknown)) {
+      throw new Error('Python agent did not return expected content');
     }
-    const rawAgentContent = rawAgentContentUnknown;
+    const { content: rawAgentContent, riskSummary } = rawAgentContentUnknown as PythonAgentResponse;
 
     // Step 2: Format Newsletter with Markdown Agent
     const formattedContentUnknown = await step.run("format-newsletter", () => formatNewsletter(rawAgentContent, topics, slug));
@@ -46,8 +51,11 @@ export const generateNewsletter = inngest.createFunction(
     }
     const formattedContent = formattedContentUnknown;
 
+    // Combine the formatted content with the risk summary
+    const finalContent = `${formattedContent}\n\n## Risk Analysis\n\n${riskSummary}`;
+
     // Step 3: Save Newsletter to Blob
-    const finalBlobUnknown = await step.run("save-to-blob", () => saveNewsletterToBlob(blobKey, formattedContent, slug));
+    const finalBlobUnknown = await step.run("save-to-blob", () => saveNewsletterToBlob(blobKey, finalContent, slug));
     if (!finalBlobUnknown || typeof finalBlobUnknown !== 'object' || typeof (finalBlobUnknown as { url?: unknown }).url !== 'string') {
       throw new Error('Blob result missing url');
     }
@@ -86,7 +94,7 @@ function getPythonAgentUrl(): string {
   return `https://${process.env.VERCEL_URL}/api/agents`;
 }
 
-async function callPythonAgent(topics: string[], slug: string) {
+async function callPythonAgent(topics: string[], slug: string): Promise<PythonAgentResponse> {
   const pythonAgentUrl = getPythonAgentUrl();
   
   try {
@@ -105,19 +113,17 @@ async function callPythonAgent(topics: string[], slug: string) {
 
     const data = await response.json();
     const content = data.content;
+    const riskSummary = data.risk_summary;
     
     if (!content) {
       throw new Error('Research agent returned no content');
     }
 
     // Log the structured data from the response
-    // frontend (via Inngest) sends a request to the FastAPI /api/agents/research endpoint.
-    // hat endpoint returns both content and structured_data
-    // Added this line to confirm that structured_data exists, is well-formed, and reaches this part of your workflow.
-    // structure_data should be seen now in the node.js terminal or in the Vercel deployment logs if run in production 
     console.log('Structured data from research agent:', data.structured_data);
+    console.log('Risk summary from research agent:', riskSummary);
 
-    return content;
+    return { content, riskSummary };
   } catch (error) {
     console.error(`[Inngest] Research agent error for slug ${slug}:`, error);
     throw error;

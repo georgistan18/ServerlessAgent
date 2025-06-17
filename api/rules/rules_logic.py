@@ -1,3 +1,8 @@
+# contains actual logic fucntions like business_age(data) etc
+# returns the risk flag (ok, monitor, review, flag) based on the data rules
+# defines what fields are required per rule via REQUIRED_DATA
+# also includes the RULES dictionary used for templating and hints
+
 from datetime import datetime
 
 # analyzing company profiles across key risk criteria:
@@ -13,7 +18,8 @@ REQUIRED_DATA = {
 
 # logic and templates for each rule
 RULES = {
-    "Business Age": {
+    "business_age": {
+        "name": "Business Age",
         "key_fields": ["registration_year", "status", "last_report_year"],
         "prompt_template": (
             "Act as a legal entity analyst. Analyze the data below and generate a 2-5 sentence explanation, using facts, trends, and implications. "
@@ -31,7 +37,8 @@ RULES = {
         }
     },
 
-    "Business Model Viability": {
+    "business_model_viability": {
+         "name": "Business Model Viability",
         "key_fields": ["market_presence", "dealer_network", "revenue_trends"],
         "prompt_template": (
             "Act as a business analyst. Analyze the data below and generate a 2-5 sentence explanation, using facts, trends, and implications. "
@@ -48,7 +55,8 @@ RULES = {
         }
     },
 
-    "Product Dependency": {
+    "product_dependency": {
+        "name": "Product Dependency",
         "key_fields": ["top_product_revenue_share", "product_lines"],
         "prompt_template": (
             "Act as a product risk analyst. Analyze the data below and generate a 2-5 sentence explanation, using facts, trends, and implications. "
@@ -65,7 +73,8 @@ RULES = {
         }
     },
 
-    "Customer Concentration": {
+    "customer_concentration": {
+        "name": "Customer Concentration",
         "key_fields": ["top_client_share", "top3_clients_share"],
         "prompt_template": (
             "Act as a market risk analyst. Analyze the data below and generate a 2-5 sentence explanation, using facts, trends, and implications. "

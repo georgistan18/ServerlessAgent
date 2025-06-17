@@ -1,3 +1,8 @@
+// src/app/newsletter/[slug]/page.tsx
+// displays the generated newsletter for a given slug 
+// handles various states: loading, error, generating, completed, and showing no content
+// calls the backend at /api/newsletter/[slug] to fetch the status and blobUURL
+
 'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
@@ -8,6 +13,36 @@ import remarkGfm from 'remark-gfm';
 import { Bot } from 'lucide-react';
 import { newsletterStyles } from '@/lib/newsletter-styles';
 import { markdownComponents } from '@/lib/markdown-components';
+
+// Structured Data Summary Component
+const StructuredDataSummary = ({ data }: { data: any }) => {
+  if (!data) return null;
+
+  const formatValue = (value: any) => {
+    if (Array.isArray(value)) {
+      return value.join(', ');
+    }
+    return value;
+  };
+
+  return (
+    <div className="bg-slate-900/40 rounded-lg p-6 my-8 border border-slate-700/50">
+      <h3 className="text-2xl font-semibold text-white mb-4">Key Data Points</h3>
+      <ul className="space-y-3">
+        {Object.entries(data).map(([key, value]) => (
+          <li key={key} className="flex flex-col">
+            <span className="text-pink-400 font-medium capitalize">
+              {key.replace(/_/g, ' ')}
+            </span>
+            <span className="text-slate-300 mt-1">
+              {formatValue(value)}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+};
 
 const NEWSLETTER_PLACEHOLDER = "__GENERATING_NEWSLETTER_CONTENT__";
 
@@ -53,6 +88,8 @@ const CircularProgress = ({ progress, size = 24 }: { progress: number; size?: nu
   );
 };
 
+// const [flags, setFlags] = useState<string[]>([]);
+
 export default function NewsletterPage() {
   const params = useParams();
   const slug = params?.slug as string | undefined;
@@ -62,7 +99,28 @@ export default function NewsletterPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [countdown, setCountdown] = useState(5);
   const [isCountingDown, setIsCountingDown] = useState(false);
-  const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [structuredData, setStructuredData] = useState<any>(null);
+  const countdownIntervalRef = useRef<NodeJS.Timeout | undefined>(undefined);
+
+  const startCountdown = () => {
+    setIsCountingDown(true);
+    setCountdown(5);
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current);
+    }
+    countdownIntervalRef.current = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          if (countdownIntervalRef.current) {
+            clearInterval(countdownIntervalRef.current);
+          }
+          setIsCountingDown(false);
+          return 5;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
 
   const fetchNewsletterStatus = useCallback(async () => {
     if (!slug) return;
@@ -145,6 +203,7 @@ export default function NewsletterPage() {
             }
           } else {
             setNewsletterContent(content);
+            setStructuredData(data.structured_data);
             setIsLoading(false);
           }
         } catch (fetchError) {
@@ -322,6 +381,7 @@ export default function NewsletterPage() {
                   >
                     {contentWithoutTitle(newsletterContent)}
                   </ReactMarkdown>
+                  {structuredData && <StructuredDataSummary data={structuredData} />}
                 </div>
                 
                 {/* Footer with CTA */}
