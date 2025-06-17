@@ -14,11 +14,28 @@ import { Bot } from 'lucide-react';
 import { newsletterStyles } from '@/lib/newsletter-styles';
 import { markdownComponents } from '@/lib/markdown-components';
 
+// Define types for the structured data
+interface StructuredData {
+  registration_year?: number;
+  status?: string;
+  last_year_report?: number;
+  market_presence?: string;
+  dealer_network?: string;
+  revenue_trends?: string;
+  top_product_revenue_share?: string;
+  product_lines?: string[];
+  top_50_percent_revenue?: string[];
+  num_clients?: number;
+  top3_clients_share?: string;
+  info_sources?: string[];
+  [key: string]: string | number | string[] | undefined; // Allow for additional fields
+}
+
 // Structured Data Summary Component
-const StructuredDataSummary = ({ data }: { data: any }) => {
+const StructuredDataSummary = ({ data }: { data: StructuredData }) => {
   if (!data) return null;
 
-  const formatValue = (value: any) => {
+  const formatValue = (value: string | number | string[] | undefined) => {
     if (Array.isArray(value)) {
       return value.join(', ');
     }
@@ -99,7 +116,7 @@ export default function NewsletterPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [countdown, setCountdown] = useState(5);
   const [isCountingDown, setIsCountingDown] = useState(false);
-  const [structuredData, setStructuredData] = useState<any>(null);
+  const [structuredData, setStructuredData] = useState<StructuredData | null>(null);
   const countdownIntervalRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
   const startCountdown = () => {
@@ -134,7 +151,7 @@ export default function NewsletterPage() {
     // Clear any existing countdown
     if (countdownIntervalRef.current) {
       clearInterval(countdownIntervalRef.current);
-      countdownIntervalRef.current = null;
+      countdownIntervalRef.current = undefined;
     }
     
     try {
@@ -163,7 +180,7 @@ export default function NewsletterPage() {
               // Clear interval and do hard refresh
               if (countdownIntervalRef.current) {
                 clearInterval(countdownIntervalRef.current);
-                countdownIntervalRef.current = null;
+                countdownIntervalRef.current = undefined;
               }
               // Hard refresh the entire page
               window.location.reload();
@@ -194,7 +211,7 @@ export default function NewsletterPage() {
                   // Clear interval and do hard refresh
                   if (countdownIntervalRef.current) {
                     clearInterval(countdownIntervalRef.current);
-                    countdownIntervalRef.current = null;
+                    countdownIntervalRef.current = undefined;
                   }
                   // Hard refresh the entire page
                   window.location.reload();
