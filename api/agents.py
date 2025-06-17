@@ -95,17 +95,18 @@ research_agent = Agent(
         "\n\nAfter your full company analysis, include the following section:\n\n"
         "**Structured Data Summary**\n"
         "Return a dictionary-like block that provides the following fields if possible:\n"
-        "- registration_year\n"
-        "- status\n"
-        "- last_year_report\n"
-        "- market_presence\n"
-        "- dealer_network\n"
-        "- revenue_trends\n"
-        "- top_product_revenue_share\n"
-        "- product_lines\n"
-        "- top_50_percent_revenue\n"
-        "- num_clients\n"
-        "- top3_clients_share\n\n"
+        "- registration_year: Year the company was officially registered.\n"
+        "- status: Current legal status of the company (active, inactive, bankrupt, etc.)\n"
+        "- last_year_report: Last year in which a public business report was avaiblable.\n"
+        "- market_presence: Describe how well-known the company is in its market.\n"
+        "- dealer_network: Size and scope of the company's distributor or reseller network (e.g. '20 authorized delaers across Europe').\n"
+        "- revenue_trends: Summary of recent revenue growth or decline.\n"
+        "- top_product_revenue_share: % of total revenue coming from the top-selling product.\n"
+        "- product_lines: Main product or service categories the company offers.\n"
+        "- top_50_percent_revenue: List of products or clients that together make up the top 50% of the company's revenue.\n"
+        "- num_clients: Estimated number of active clients or buyers.\n"
+        "- top3_clients_share: % of revenue that comes from the top 3 clients.\n"
+        "- info_sources: List of key websites or sources you used to extract the above data (e.g., 'crunchbase.com', 'company investor page', 'listafirme.ro', 'bloomberg.com', 'opencorporates.com' - but do not be limited to these examples)\n\n"
         "If any value is unknown or not found, clearly write 'Unknown'.\n"
         "Return the summary inside a code block like this:\n"
         "```json\n"
@@ -115,6 +116,12 @@ research_agent = Agent(
         "  ...\n"
         "}\n"
         "```"
+        "6. If the first 1–2 sources do not contain enough information, look for alternative sources such as:\n"
+        "   - Industry publications and reports\n"
+        "   - Company investor relations pages\n"
+        "   - Analyst insights on financial portals\n"
+        "   - Global distributor lists or supplier directories\n"
+        "7. If you still cannot find any data, state 'Unknown' but explain what sources were checked.\n"
 
     ),
     tools=[ WebSearchTool() ]
@@ -167,17 +174,43 @@ async def generate_research(request: TopicsRequest):
     company_name = ", ".join(topics)
     user_prompt = (
         f"Today is {today_str}. I need you to research and analyze {company_name} comprehensively. "
-        f"IMPORTANT: Focus on recent developments from the last 30 days (since {yesterday_str}), but also include historical context. "
-        f"When searching, please include date filters like 'today', 'yesterday', 'last 30 days', or specific dates like '{today_str}' and '{yesterday_str}' in your search queries. "
-        f"Find the most recent developments, financial data, and current events related to {company_name}. "
-        f"Create a detailed company analysis report emphasizing what's happening RIGHT NOW while providing necessary historical context."
+        f"IMPORTANT: Include a structured JSON at the end with key data points for analysis. "
+        f"Focus on recent developments from the last 30 days (since {yesterday_str}), "
+        f"but include historical context too."
     )
     
     # Run the research agent
     result = await Runner.run(research_agent, user_prompt)
     raw_content = result.final_output
-    
-    return {"content": raw_content}
+
+    import re
+    import json
+
+    # extract json from markdown
+    def extract_json_from_markdown(text):
+        """
+        Extracts the last JSON block from the markdown test (enclosed in ```json ... ```)
+        Returns a Python dict or None if parsing fails
+        This parsed object is then available to be processed by rules
+        """
+        match = re.search(r"```json\s*(\{.*?\})\s*```", text, re.DOTALL)
+        if match:
+            try:
+                return json.loads(match.group(1))
+            except json.JSONDecodeError:
+                return None
+        return None
+
+    structured_data = extract_json_from_markdown(raw_content)
+
+    return {
+        "content": raw_content,
+        "structured_data": structured_data,
+        "flags": None,  # APPLY RULE LOGIC HERE LATER
+        "error": None if structured_data else "Structured JSON could not be parsed."
+    }
+    # apply rules to structured data
+
 
 @app.post("/format")
 async def format_newsletter(request: FormatRequest):

@@ -110,6 +110,13 @@ async function callPythonAgent(topics: string[], slug: string) {
       throw new Error('Research agent returned no content');
     }
 
+    // Log the structured data from the response
+    // frontend (via Inngest) sends a request to the FastAPI /api/agents/research endpoint.
+    // hat endpoint returns both content and structured_data
+    // Added this line to confirm that structured_data exists, is well-formed, and reaches this part of your workflow.
+    // structure_data should be seen now in the node.js terminal or in the Vercel deployment logs if run in production 
+    console.log('Structured data from research agent:', data.structured_data);
+
     return content;
   } catch (error) {
     console.error(`[Inngest] Research agent error for slug ${slug}:`, error);
