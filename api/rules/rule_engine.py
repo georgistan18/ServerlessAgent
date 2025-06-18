@@ -11,6 +11,11 @@ from .rules_logic import (
     business_model_viability,
     product_dependency,
     customer_concentration,
+    supplier_concentration,
+    asset_traceability,
+    esg_compliance,
+    cybersecurity,
+    corporate_rating,
 )
 
 RULES_FUNCTIONS = {
@@ -18,6 +23,11 @@ RULES_FUNCTIONS = {
     "business_model_viability": business_model_viability,
     "product_dependency": product_dependency,
     "customer_concentration": customer_concentration,
+    "supplier_concentration": supplier_concentration,
+    "asset_traceability": asset_traceability,
+    "esg_compliance": esg_compliance,
+    "cybersecurity": cybersecurity,
+    "corporate_rating": corporate_rating,
 }
 
 def evaluate_rule(criteria: str, data: dict) -> dict:
@@ -41,5 +51,6 @@ def evaluate_rule(criteria: str, data: dict) -> dict:
         "suggested_action": rule_meta.get("suggested_action"),
         "explanation_hint": rule_meta.get("how_to_explain") # helper from LLM
     }
+
 
     

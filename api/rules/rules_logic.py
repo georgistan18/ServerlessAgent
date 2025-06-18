@@ -13,7 +13,12 @@ REQUIRED_DATA = {
     "business_age": ["registration_year", "status", "last_year_report"],
     "business_model_viability": ["market_presence", "dealer_network", "revenue_trends"],
     "product_dependency": ["top_product_revenue_share", "product_lines"],
-    "customer_concentration": ["top_50_percent_revenue", "num_clients", "top3_clients_share"]
+    "customer_concentration": ["top_50_percent_revenue", "num_clients", "top3_clients_share"],
+    "supplier_concentration": ["top_50_percent_cogs", "top3_suppliers_share"],
+    "asset_traceability": ["traceability_system", "methods", "since"],
+    "esg_compliance": ["esg_policy", "certifications", "incidents"],
+    "cybersecurity": ["certifications", "measures", "incidents"],
+    "corporate_rating": ["credit_rating", "agency"]
 }
 
 # logic and templates for each rule
@@ -89,7 +94,118 @@ RULES = {
             "option_2": "Could you please clarify the company's customer portfolio and mitigation plan for top clients' dependence?",
             "default": "Keep Flag"
         }
-    }
+    },
+
+    "supplier_concentration": {
+    "name": "Supplier Concentration",
+    "key_fields": ["top_supplier_share", "top3_suppliers_share", "number_of_suppliers"],
+    "prompt_template": (
+        "Act as a supply chain risk analyst. Analyze the data below and generate a 2-5 sentence explanation, using facts, trends, and implications. "
+        "Assign a risk flag: OK, Monitor, Review, or Flag.\n"
+        "Data: top_supplier_share={top_supplier_share}, top3_suppliers_share={top3_suppliers_share}, number_of_suppliers={number_of_suppliers}"
+    ),
+    "flag_logic": "supplier_concentration",
+    "example_ok": "The largest supplier contributes 12% of COGS, indicating healthy diversification.",
+    "on_flag": {
+        "finding": "Based on available data, the company appears to have strong dependence on a limited number of suppliers.",
+        "option_1": (
+            "Ask for company's supplier relations and mitigation plan for suppliers' dependency."
+        ),
+        "option_2": (
+            "Could you please clarify the company's supplier relations and mitigation plan for top suppliers' dependence."
+        ),
+        "default": "Keep Flag"
+        }
+    },  
+
+    "asset_traceability": {
+    "name": "Asset Traceability",
+    "key_fields": ["traceability_system", "methods", "since"],
+    "prompt_template": (
+        "Act as a supply chain auditor. Analyze the data below and generate a 2-5 sentence explanation, using facts, trends, and implications. "
+        "Assign a risk flag: OK, Monitor, Review, or Flag.\n"
+        "Data: traceability_system={traceability_system}, methods={methods}, since={since}"
+    ),
+    "flag_logic": "asset_traceability",
+    "example_ok": "All equipment manufactured since 2021 is shipped with GPS and serialized QR codes for location tracking.",
+    "on_flag": {
+        "finding": "No information was found in relation to the Asset Traceability data possibility.",
+        "option_1": (
+            "Ask for company’s connectivity options for on-request or on-going Asset Traceability data."
+        ),
+        "option_2": (
+            "Could you please clarify your Asset connectivity possibilities to provide on-request or on-going Asset Traceability data."
+        ),
+        "default": "Keep Flag"
+        }
+    },
+
+    "esg_compliance": {
+    "name": "ESG Compliance",
+    "key_fields": ["esg_policy", "certifications", "incidents"],
+    "prompt_template": (
+        "Act as an ESG compliance expert. Analyze the data below and generate a 2-5 sentence explanation, using facts, trends, and implications. "
+        "Assign a risk flag: OK, Monitor, Review, or Flag.\n"
+        "Data: esg_policy={esg_policy}, certifications={certifications}, incidents={incidents}"
+    ),
+    "flag_logic": "esg_compliance",
+    "example_ok": "The manufacturer holds ISO 14001 certification and reported zero environmental incidents in the past five years.",
+    "on_flag": {
+        "finding": "No clear information was found in relationg to your ESG strategy, scoring and certifications.",
+        "option_1": (
+            "Ask for ESG compliance and sustainability reporting."
+        ),
+        "option_2": (
+            "Could you please detail your ESG compliance and sustainability reporting."
+        ),
+        "default": "Keep Flag"
+        }
+    },
+
+    "cybersecurity": {
+    "name": "Cybersecurity",
+    "key_fields": ["certifications", "measures", "incidents"],
+    "prompt_template": (
+        "Act as a cybersecurity risk analyst. Analyze the data below and generate a 2-5 sentence explanation, using facts, trends, and implications. "
+        "Assign a risk flag: OK, Monitor, Review, or Flag.\n"
+        "Data: certifications={certifications}, measures={measures}, incidents={incidents}"
+    ),
+    "flag_logic": "cybersecurity",
+    "example_ok": "Certified to ISO 27001 and no material security breaches reported since 2020.",
+    "on_flag": {
+        "finding": "No clear information was found in relationg to your Cybersecurity strategy, scoring and certifications.",
+        "option_1": (
+            " Ask for Cybersecurity compliance and reporting."
+        ),
+        "option_2": (
+            "Could you please detail your Cybersecurity compliance and reporting."
+        ),
+        "default": "Keep Flag"
+        }
+    },
+
+    "corporate_rating": {
+    "name": "Corporate Rating",
+    "key_fields": ["credit_rating", "agency"],
+    "prompt_template": (
+        "Act as a credit risk analyst. Analyze the data below and generate a 2-5 sentence explanation, using facts, trends, and implications. "
+        "Assign a risk flag: OK, Monitor, Review, or Flag.\n"
+        "Data: credit_rating={credit_rating}, agency={agency}"
+    ),
+    "flag_logic": "esg_compliance",
+    "example_ok": "Rated BBB by S&P, outlook stable.",
+    "on_flag": {
+        "finding": "Based on available data, the company appears to have poor credit rating as per latest publicly available financial statements. ",
+        "option_1": (
+            "Ask for clarification for company's credit rating."
+        ),
+        "option_2": (
+            "Could you please clarify the company’s current credit rating."
+        ),
+        "default": "Keep Flag"
+        }
+    },
+
 }
 
 # Functions for each flag-logic block
@@ -180,4 +296,57 @@ def customer_concentration(data: dict) -> str:
         pass
 
     return "Review"
+
+def supplier_concentration(data: dict) -> str:
+    top1 = float(data.get("top_supplier_share", 0))
+    top3 = float(data.get("top3_suppliers_share", 0))
+    if top1 > 50 or top3 > 75:
+        return "Flag"
+    elif top1 > 30 or top3 > 50:
+        return "Review"
+    return "OK"
+
+def asset_traceability(data: dict) -> str:
+    traceability = data.get("traceability", "").lower()
+    if "none" in traceability:
+        return "Flag"
+    elif "limited" in traceability:
+        return "Monitor"
+    elif "partial" in traceability:
+        return "Review"
+    return "OK"
+
+def esg_compliance(data: dict) -> str:
+    certs = data.get("certifications", "").lower()
+    incidents = data.get("incidents", "").lower()
+    if "major" in incidents:
+        return "Flag"
+    elif "minor" in incidents:
+        return "Monitor"
+    elif not certs or certs == "none":
+        return "Review"
+    return "OK"
+
+def cybersecurity(data: dict) -> str:
+    certs = data.get("certifications", "").lower()
+    measures = data.get("measures", "").lower()
+    incidents = data.get("incidents", "").lower()
+    if "major" in incidents or "breach" in incidents:
+        return "Flag"
+    elif "minor" in incidents:
+        return "Monitor"
+    elif "ok" not in certs and "ok" not in measures:
+        return "Review"
+    return "OK"
+
+def corporate_rating(data: dict) -> str:
+    rating = data.get("credit_rating", "").upper()
+    if rating in ["CCC", "DEFAULT", "UNRATED"]:
+        return "Flag"
+    elif rating in ["BB-", "B+", "B", "B-"]:
+        return "Monitor"
+    elif rating in ["BBB", "BBB+", "BBB-", "A", "A-", "A+"]:
+        return "OK"
+    return "Review"
+
 

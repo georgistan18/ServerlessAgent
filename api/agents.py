@@ -60,9 +60,10 @@ research_agent = Agent(
         "   - Leadership team and organizational structure\n"
         "   - Future outlook and strategic initiatives\n"
         "2. Perform multiple searches with different query variations to ensure broad coverage\n"
-        "3. Prioritize recent information (last 30 days) but include historical context\n"
-        "4. Look for both general news and specific expert analysis\n"
-        "5. If initial results are insufficient, refine your search queries and search again\n\n"
+        "3. If you don't find the information required, sometimes it may be useful to search again for the company information by its legal name (for e.g. Veridion's legal name is Dataworks Research SRL and you can find the last financial report date by this name on listafirme.ro) or ultimately the company's parent company or subsidiaries\n. Include this information in the structured data summary if you found it."
+        "4. Prioritize recent information (last 30 days) but include historical context\n"
+        "5. Look for both general news and specific expert analysis\n"
+        "6. If initial results are insufficient, refine your search queries and search again\n\n"
         "If there is no company under the name provided, please do not hallucinate and clearly state 'Company could not be found'"
         "Your output structure:\n"
         "**[Company Name] - Comprehensive Risk Analysis**\n\n"
@@ -104,15 +105,33 @@ research_agent = Agent(
         "- registration_year: Year the company was officially registered.\n"
         "- status: Current legal status of the company (active, inactive, bankrupt, etc.)\n"
         "- last_year_report: Last year in which a public business report was avaiblable.\n"
+
         "- market_presence: Describe how well-known the company is in its market.\n"
         "- dealer_network: Size and scope of the company's distributor or reseller network (e.g. '20 authorized delaers across Europe').\n"
         "- revenue_trends: Summary of recent revenue growth or decline.\n"
+
         "- top_product_revenue_share: % of total revenue coming from the top-selling product.\n"
         "- product_lines: Main product or service categories the company offers.\n"
+
         "- top_50_percent_revenue: List of products or clients that together make up the top 50% of the company's revenue.\n"
         "- num_clients: Estimated number of active clients or buyers.\n"
         "- top3_clients_share: % of revenue that comes from the top 3 clients.\n"
-        "- info_sources: List of key websites or sources you used to extract the above data (e.g., 'crunchbase.com', 'company investor page', 'listafirme.ro', 'bloomberg.com', 'opencorporates.com' - but do not be limited to these examples)\n\n"
+
+        "- top_50_percent_cogs: Number of suppliers or products that account for the top 50% of the company’s Cost of Goods Sold (COGS).\n"
+        "- top3_suppliers_share: Estimated combined share of purchases or COGS coming from the top three suppliers.\n"
+
+        "- traceability_system: Description of whether the company uses tools like GPS, QR codes, RFID, or ERP systems for asset tracking.\n"
+        "- methods: Technologies or operational procedures used to trace or track the location of financed or leased assets.\n"
+        "- since: Year or period since the traceability system has been implemented.\n"
+
+        "- esg_policy: Existence and description of any formal Environmental, Social, and Governance (ESG) policy or report.\n"
+        "- certifications: ESG- or security-related certifications (e.g., ISO 14001, ISO 27001, SA8000).\n"
+        "- incidents: Notable ESG violations, controversies, fines, or security breaches the company has faced.\n"
+
+        "- credit_rating: Official rating (e.g. BBB, A-, etc.) from recognized agencies such as Moody's, S&P, or Fitch.\n"
+        "- agency: Name of the credit rating agency that assigned the credit rating.\n"
+
+        "- info_sources: List of key websites or source (websites, databases, filings) you used to extract the above data (e.g., 'crunchbase.com', 'company investor page', 'listafirme.ro', 'bloomberg.com', 'opencorporates.com' - but do not be limited to these examples)\n\n"
         "If any value is unknown or not found, clearly write 'Unknown'.\n"
         "Return the summary inside a code block like this:\n"
         "```json\n"
@@ -122,12 +141,12 @@ research_agent = Agent(
         "  ...\n"
         "}\n"
         "```"
-        "6. If the first 1–2 sources do not contain enough information, look for alternative sources such as:\n"
+        "7. If the first 1–2 sources do not contain enough information, look for alternative sources such as:\n"
         "   - Industry publications and reports\n"
         "   - Company investor relations pages\n"
         "   - Analyst insights on financial portals\n"
         "   - Global distributor lists or supplier directories\n"
-        "7. If you still cannot find any data, state 'Unknown' but explain what sources were checked.\n"
+        "8. If you still cannot find any data, state 'Unknown' but explain what sources were checked.\n"
 
     ),
     tools=[ WebSearchTool() ]
@@ -224,15 +243,15 @@ async def generate_research(request: TopicsRequest):
 
     for key, rule in RULES.items():
         try:
-            flag = evaluate_rule(key, structured_data)
-            flags[key] = flag
+            result = evaluate_rule(key, structured_data)
+            flags[key] = result["flag"]
 
-            # create explanation using prompt template for each rule
-            explanation = rule["prompt_template"].format(flag=flag, **structured_data)
-            explanations.append(f"### {rule['name']} ({flag})\n{explanation}")
+            explanation = result["prompt"].format(flag=result["flag"], **structured_data)
+            explanations.append(f"### {rule['name']} ({result['flag']})\n{explanation}")
+
         except Exception as e:
             flags[key] = "Error"
-            explanations.append(f"### {rule['name']} (Error:\n{str(e)})\n\n")
+            explanations.append(f"### {rule['name']} (Error)\n{str(e)}\n")
 
     # create a summary prompt for the AI agent to generate a markdown section
     summary_prompt = (
