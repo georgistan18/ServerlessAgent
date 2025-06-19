@@ -1,5 +1,5 @@
 import { inngest } from "./client";
-import { put } from "@vercel/blob";
+import { put, del } from "@vercel/blob";
 // Removed uuid as slug should be unique enough with date and topics
 
 const NEWSLETTER_READ_WRITE_TOKEN = process.env.NEWSLETTER_READ_WRITE_TOKEN;
@@ -19,6 +19,7 @@ interface PythonAgentResponse {
   riskSummary: string;
 }
 
+
 // Main Inngest function with multi-step workflow
 export const generateNewsletter = inngest.createFunction(
   { id: "generate-newsletter" },
@@ -37,6 +38,10 @@ export const generateNewsletter = inngest.createFunction(
     }
     assertStepHasRun(step);
 
+    // Step 0:Write placeholder blob first
+    // This is to solve the stuck frontend page stuck on generating issue
+    await writeInitialPlaceholderBlob(blobKey, slug);
+
     // Step 1: Call Python Agent
     const rawAgentContentUnknown = await step.run("call-python-agent", () => callPythonAgent(topics, slug));
     if (!rawAgentContentUnknown || typeof rawAgentContentUnknown !== 'object' || !('content' in rawAgentContentUnknown)) {
@@ -53,6 +58,10 @@ export const generateNewsletter = inngest.createFunction(
 
     // Combine the formatted content with the risk summary
     const finalContent = `${formattedContent}\n\n## Risk Analysis\n\n${riskSummary}`;
+
+    // add diagnostics logs to verify that the final content is being saved
+    console.log("[Inngest] Final content to save:", finalContent.slice(0, 200));
+    console.log("[Inngest] Using blobKey:", blobKey);
 
     // Step 3: Save Newsletter to Blob
     const finalBlobUnknown = await step.run("save-to-blob", () => saveNewsletterToBlob(blobKey, finalContent, slug));
@@ -187,16 +196,60 @@ async function saveNewsletterToBlob(blobKey: string, rawAgentContent: string, sl
     console.error(`[Inngest] Invalid content type for slug ${slug}. Expected string, got ${typeof rawAgentContent}`);
     throw new Error("Invalid content type from agent for saving to blob.");
   }
+
   try {
+    // Step 1: Check if content is just the placeholder
+    if (rawAgentContent.trim() === "__GENERATING_NEWSLETTER_CONTENT__") {
+      console.warn(`[saveNewsletterToBlob] Final content is STILL placeholder — skipping overwrite!`);
+      return;
+    } else {
+      console.log(`[saveNewsletterToBlob] Content is valid — proceeding to overwrite.`);
+    }
+
+    // Step 2: Delete the existing blob to force CDN cache eviction
+    try {
+      await del(blobKey, { token: NEWSLETTER_READ_WRITE_TOKEN });
+      console.log(`[Inngest] Deleted old blobKey before overwrite: ${blobKey}`);
+    } catch (delError) {
+      console.warn(`[Inngest] Could not delete old blob (may not exist yet):`, delError);
+    }
+
+    // Step 3: Upload new content (without random suffix!)
     const blob = await put(blobKey, rawAgentContent, {
       access: "public",
       contentType: "text/markdown",
       token: NEWSLETTER_READ_WRITE_TOKEN,
       allowOverwrite: true,
+      addRandomSuffix: false,
     });
+
+    // Step 4: Log and return
+    console.log(`[Inngest] Successfully saved final blob for slug ${slug}`);
+    console.log(`[Inngest] Content preview:`, rawAgentContent.slice(0, 200));
+    console.log(`[Inngest] Blob URL: ${blob.url}`);
     return blob;
+
   } catch (error) {
     console.error(`[Inngest] Error saving to blob for slug ${slug}:`, error);
+    throw error;
+  }
+}
+
+// Write the placeholder blob first - solve stuck frontend page stuck on generating issue
+async function writeInitialPlaceholderBlob(blobKey: string, slug: string) {
+  try {
+    const blob = await put(blobKey, "__GENERATING_NEWSLETTER_CONTENT__", {
+      access: "public",
+      contentType: "text/markdown",
+      token: NEWSLETTER_READ_WRITE_TOKEN,
+      allowOverwrite: true,
+      addRandomSuffix: false, // to solve known behaviour in vercel blob storage where the same blobKey is not overwritten
+    });
+    console.log(`[Inngest] Placeholder blob created for slug ${slug}`);
+    console.log(`[writeInitialPlaceholderBlob] Writing placeholder to blobKey: ${blobKey}`);
+    return blob;
+  } catch (error) {
+    console.error(`[Inngest] Error writing initial placeholder blob for slug ${slug}:`, error);
     throw error;
   }
 }

@@ -104,7 +104,7 @@ research_agent = Agent(
         "Return a dictionary-like block that provides the following fields if possible:\n"
         "- registration_year: Year the company was officially registered.\n"
         "- status: Current legal status of the company (active, inactive, bankrupt, etc.)\n"
-        "- last_year_report: Last year in which a public business report was avaiblable.\n"
+        "- last_report_year: Last year in which a public business report was avaiblable.\n"
 
         "- market_presence: Describe how well-known the company is in its market.\n"
         "- dealer_network: Size and scope of the company's distributor or reseller network (e.g. '20 authorized delaers across Europe').\n"

@@ -28,7 +28,14 @@ export default function HomePage() {
     const individualTopics = trimmedTopics.split(',').map(topic => topic.trim()).filter(topic => topic !== '');
     const encodedTopicString = individualTopics.map(topic => topic.replace(/ /g, '+')).join('~');
 
+    // use a unique slug every time
     const fullSlug = `${today}-${encodedTopicString}`;
+    // Uncomment the next line if you want to add a random suffix for uniqueness
+    // This is optional and can be used if you want to ensure the slug is always unique
+    // This can be useful if you want to avoid collisions in case the same topics are submitted
+    // but it will make the URL less readable.
+    // const randomSuffix = Math.random().toString(36).substring(2, 6);
+    // const fullSlug = `${today}-${encodedTopicString}-${randomSuffix}`;
     router.push(`/newsletter/${fullSlug}`);
   };
 
@@ -42,7 +49,7 @@ export default function HomePage() {
             <h1 className="text-2xl font-bold">Serverless Agent Architecture</h1>
           </div>
           <div className="flex items-center space-x-4">
-            <a href="https://github.com/brookr/serverless-agents" target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-white">
+            <a href="https://github.com/georgistan18/ServerlessAgent" target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-white">
               GitHub
             </a>
           </div>
@@ -74,7 +81,7 @@ export default function HomePage() {
                     type="text"
                     value={topics}
                     onChange={handleTopicChange}
-                    placeholder="e.g., Artificial Intelligence, Climate Tech, Quantum Computing"
+                    placeholder="e.g., TotalSoft, Apple, Microsoft"
                     className="bg-slate-700 border-slate-600 placeholder-slate-500 text-white focus:ring-pink-500 focus:border-pink-500 h-12 text-lg"
                   />
                 </div>

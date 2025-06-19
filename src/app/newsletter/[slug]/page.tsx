@@ -13,6 +13,7 @@ import remarkGfm from 'remark-gfm';
 import { Bot } from 'lucide-react';
 import { newsletterStyles } from '@/lib/newsletter-styles';
 import { markdownComponents } from '@/lib/markdown-components';
+import { blob } from 'stream/consumers';
 
 // Define types for the structured data
 interface StructuredData {
@@ -140,34 +141,55 @@ export default function NewsletterPage() {
   // };
 
   const fetchNewsletterStatus = useCallback(async () => {
-    if (!slug) return;
-    setIsLoading(true);
-    setError(null);
-    setNewsletterContent(null);
-    setIsGenerating(false);
-    setIsCountingDown(false);
-    setCountdown(5);
-    
-    // Clear any existing countdown
-    if (countdownIntervalRef.current) {
-      clearInterval(countdownIntervalRef.current);
-      countdownIntervalRef.current = undefined;
+  if (!slug) return;
+
+  console.log("[DEBUG] Starting fetchNewsletterStatus for:", slug);
+  setIsLoading(true);
+  setError(null);
+  setNewsletterContent(null);
+  setIsGenerating(false);
+  setIsCountingDown(false);
+  setCountdown(5);
+
+  // Clear any existing countdown
+  if (countdownIntervalRef.current) {
+    clearInterval(countdownIntervalRef.current);
+    countdownIntervalRef.current = undefined;
+  }
+
+  try {
+    const res = await fetch(`/api/newsletter/${slug}`);
+    if (!res.ok) {
+      const errData = await res.json();
+      throw new Error(errData.error || `Failed to initiate company analysis generation.`);
     }
-    
-    try {
-      const res = await fetch(`/api/newsletter/${slug}`);
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.error || `Failed to initiate company analysis generation.`);
-      }
-      const data = await res.json();
-      if (data.error) {
-        setError(data.error);
-        setIsLoading(false);
-      } else if (data.status === 'generating' && data.blobUrl) {
+
+    const data = await res.json();
+    console.log("[DEBUG] API response:", data);
+
+    if (data.error) {
+      setError(data.error);
+      setIsLoading(false);
+      return;
+    }
+
+    if (data.status && data.blobUrl) {
+      const blobUrl = `${data.blobUrl}?nocache=${Date.now()}`;
+      console.log("[DEBUG] Fetching blob content from:", blobUrl);
+
+      const blobRes = await fetch(blobUrl);
+      if (!blobRes.ok) throw new Error("Failed to fetch company analysis content from blob.");
+
+      const content = await blobRes.text();
+      console.log("[DEBUG] Blob content fetched:", content.slice(0, 200));
+
+      const isPlaceholder = content.trim() === NEWSLETTER_PLACEHOLDER;
+      if (isPlaceholder) {
+        console.log("[DEBUG] Placeholder detected – entering generating state");
         setIsGenerating(true);
         setIsLoading(false);
-        // Start countdown only if not already running
+
+        // Start countdown
         if (!countdownIntervalRef.current) {
           setIsCountingDown(true);
           setCountdown(5);
@@ -175,71 +197,36 @@ export default function NewsletterPage() {
           countdownIntervalRef.current = setInterval(() => {
             secondsElapsed += 1;
             setCountdown(5 - secondsElapsed);
-            
+
             if (secondsElapsed >= 5) {
-              // Clear interval and do hard refresh
-              if (countdownIntervalRef.current) {
-                clearInterval(countdownIntervalRef.current);
-                countdownIntervalRef.current = undefined;
-              }
-              // Hard refresh the entire page
+              clearInterval(countdownIntervalRef.current!);
+              countdownIntervalRef.current = undefined;
               window.location.reload();
             }
           }, 1000);
         }
-      } else if (data.status === 'completed' && data.blobUrl) {
-        // Fetch the content from the blob URL
-        try {
-          const blobRes = await fetch(data.blobUrl);
-          if (!blobRes.ok) throw new Error("Failed to fetch company analysis content from blob.");
-          const content = await blobRes.text();
-          
-          // Check if content is still placeholder
-          if (content === NEWSLETTER_PLACEHOLDER) {
-            setIsGenerating(true);
-            setIsLoading(false);
-            // Start countdown for placeholder case too, only if not already running
-            if (!countdownIntervalRef.current) {
-              setIsCountingDown(true);
-              setCountdown(5);
-              let secondsElapsed = 0;
-              countdownIntervalRef.current = setInterval(() => {
-                secondsElapsed += 1;
-                setCountdown(5 - secondsElapsed);
-                
-                if (secondsElapsed >= 5) {
-                  // Clear interval and do hard refresh
-                  if (countdownIntervalRef.current) {
-                    clearInterval(countdownIntervalRef.current);
-                    countdownIntervalRef.current = undefined;
-                  }
-                  // Hard refresh the entire page
-                  window.location.reload();
-                }
-              }, 1000);
-            }
-          } else {
-            setNewsletterContent(content);
-            setStructuredData(data.structured_data);
-            setIsLoading(false);
-          }
-        } catch (fetchError) {
-          console.error('Error fetching blob content:', fetchError);
-          throw new Error(`Failed to fetch blob content: ${fetchError instanceof Error ? fetchError.message : 'Unknown error'}`);
-        }
       } else {
-        throw new Error("Unexpected response from API.");
+        console.log("[DEBUG] Final content is ready — updating state");
+        setNewsletterContent(content);
+        setStructuredData(data.structured_data ?? null);
+        setIsGenerating(false);
+        setIsLoading(false);
       }
-    } catch (err: unknown) {
-      console.error("Fetch error:", err);
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError("Failed to retrieve company analysis due to an unknown error.");
-      }
-      setIsLoading(false);
+    } else {
+      console.log("[DEBUG] Unexpected API response shape");
+      throw new Error("Unexpected response from API.");
     }
-  }, [slug]);
+  } catch (err: unknown) {
+    console.error("[DEBUG] Error in fetchNewsletterStatus:", err);
+    if (err instanceof Error) {
+      setError(err.message);
+    } else {
+      setError("Failed to retrieve company analysis due to an unknown error.");
+    }
+    setIsLoading(false);
+  }
+}, [slug]);
+
 
   useEffect(() => {
     fetchNewsletterStatus();
