@@ -1,5 +1,5 @@
 import { inngest } from "./client";
-import { put, del } from "@vercel/blob";
+import { put, del, head } from "@vercel/blob";
 // Removed uuid as slug should be unique enough with date and topics
 
 const NEWSLETTER_READ_WRITE_TOKEN = process.env.NEWSLETTER_READ_WRITE_TOKEN;
@@ -40,7 +40,12 @@ export const generateNewsletter = inngest.createFunction(
 
     // Step 0:Write placeholder blob first
     // This is to solve the stuck frontend page stuck on generating issue
-    await writeInitialPlaceholderBlob(blobKey, slug);
+    const existing = await head(blobKey, { token: NEWSLETTER_READ_WRITE_TOKEN }).catch(() => null);
+    if (!existing) {
+      await writeInitialPlaceholderBlob(blobKey, slug);
+    } else {
+      console.log(`[Inngest] Skipping placeholder write — blob already exists for ${slug}`);
+    }
 
     // Step 1: Call Python Agent
     const rawAgentContentUnknown = await step.run("call-python-agent", () => callPythonAgent(topics, slug));
@@ -56,15 +61,21 @@ export const generateNewsletter = inngest.createFunction(
     }
     const formattedContent = formattedContentUnknown;
 
+
     // Combine the formatted content with the risk summary
     const finalContent = `${formattedContent}\n\n## Risk Analysis\n\n${riskSummary}`;
 
     // add diagnostics logs to verify that the final content is being saved
-    console.log("[Inngest] Final content to save:", finalContent.slice(0, 200));
-    console.log("[Inngest] Using blobKey:", blobKey);
+    // console.warn("[Inngest] Final content to save:", finalContent.slice(0, 200));
+
 
     // Step 3: Save Newsletter to Blob
-    const finalBlobUnknown = await step.run("save-to-blob", () => saveNewsletterToBlob(blobKey, finalContent, slug));
+    const finalBlobUnknown = await step.run("save-to-blob", () => saveNewsletterToBlob(blobKey, finalContent, slug)).catch((error) => {
+      console.error(`[Inngest] Error saving to blob for slug ${slug}:`, error);
+      throw new Error(`Failed to save newsletter to blob for slug ${slug}`);
+    });
+    
+    
     if (!finalBlobUnknown || typeof finalBlobUnknown !== 'object' || typeof (finalBlobUnknown as { url?: unknown }).url !== 'string') {
       throw new Error('Blob result missing url');
     }
@@ -133,8 +144,8 @@ async function callPythonAgent(topics: string[], slug: string): Promise<PythonAg
     // hat endpoint returns both content and structured_data
     // Added this line to confirm that structured_data exists, is well-formed, and reaches this part of your workflow.
     // structure_data should be seen now in the node.js terminal or in the Vercel deployment logs if run in production 
-    console.log('Structured data from research agent:', data.structured_data);
-    console.log('Risk summary from research agent:', riskSummary);
+    // console.log('Structured data from research agent:', data.structured_data);
+    // console.log('Risk summary from research agent:', riskSummary);
 
     return { content, riskSummary };
   } catch (error) {
@@ -191,20 +202,20 @@ async function formatNewsletter(rawContent: string, topics: string[], slug: stri
   }
 }
 
-async function saveNewsletterToBlob(blobKey: string, rawAgentContent: string, slug: string) {
-  if (typeof rawAgentContent !== "string") {
-    console.error(`[Inngest] Invalid content type for slug ${slug}. Expected string, got ${typeof rawAgentContent}`);
+async function saveNewsletterToBlob(blobKey: string, aiFinalContent: string, slug: string) {
+  if (typeof aiFinalContent !== "string") {
+    console.error(`[Inngest] Invalid content type for slug ${slug}. Expected string, got ${typeof aiFinalContent}`);
     throw new Error("Invalid content type from agent for saving to blob.");
   }
 
   try {
     // Step 1: Check if content is just the placeholder
-    if (rawAgentContent.trim() === "__GENERATING_NEWSLETTER_CONTENT__") {
-      console.warn(`[saveNewsletterToBlob] Final content is STILL placeholder — skipping overwrite!`);
-      return;
-    } else {
-      console.log(`[saveNewsletterToBlob] Content is valid — proceeding to overwrite.`);
-    }
+    // if (rawAgentContent.trim() === "__GENERATING_NEWSLETTER_CONTENT__") {
+    //   console.warn(`[saveNewsletterToBlob] Final content is STILL placeholder — skipping overwrite!`);
+    //   return;
+    // } else {
+    //   console.log(`[saveNewsletterToBlob] Content is valid — proceeding to overwrite.`);
+    // }
 
     // Step 2: Delete the existing blob to force CDN cache eviction
     try {
@@ -214,8 +225,9 @@ async function saveNewsletterToBlob(blobKey: string, rawAgentContent: string, sl
       console.warn(`[Inngest] Could not delete old blob (may not exist yet):`, delError);
     }
 
+      console.log(`[Inngest] Content preview:`, aiFinalContent.slice(0, 200));
     // Step 3: Upload new content (without random suffix!)
-    const blob = await put(blobKey, rawAgentContent, {
+    const blob = await put(blobKey, aiFinalContent, {
       access: "public",
       contentType: "text/markdown",
       token: NEWSLETTER_READ_WRITE_TOKEN,
@@ -225,7 +237,6 @@ async function saveNewsletterToBlob(blobKey: string, rawAgentContent: string, sl
 
     // Step 4: Log and return
     console.log(`[Inngest] Successfully saved final blob for slug ${slug}`);
-    console.log(`[Inngest] Content preview:`, rawAgentContent.slice(0, 200));
     console.log(`[Inngest] Blob URL: ${blob.url}`);
     return blob;
 

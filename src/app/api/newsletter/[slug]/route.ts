@@ -14,7 +14,7 @@ interface CachedApiResponse {
 }
 
 // In-memory cache for API responses
-const apiResponseCache = new Map<string, { timestamp: number; data: CachedApiResponse }>();
+// const apiResponseCache = new Map<string, { timestamp: number; data: CachedApiResponse }>();
 
 export async function GET(
   request: Request,
@@ -26,6 +26,7 @@ export async function GET(
     return NextResponse.json({ error: 'Slug is required' }, { status: 400 });
   }
 
+  // vercel blob storage token
   const NEWSLETTER_READ_WRITE_TOKEN = process.env.NEWSLETTER_READ_WRITE_TOKEN;
   if (!NEWSLETTER_READ_WRITE_TOKEN) {
     console.error('NEWSLETTER_READ_WRITE_TOKEN environment variable is not set');
@@ -35,14 +36,15 @@ export async function GET(
   const blobKey = `newsletters/${slug}.md`;
 
   // Use cache if recent
-  const cachedApiResponse = apiResponseCache.get(slug);
-  if (cachedApiResponse && (Date.now() - cachedApiResponse.timestamp < 60000)) {
-    if (cachedApiResponse.data.status === 'generating') {
-      return NextResponse.json(cachedApiResponse.data);
-    }
-  }
+  // const cachedApiResponse = apiResponseCache.get(slug);
+  // if (cachedApiResponse && (Date.now() - cachedApiResponse.timestamp < 60000)) {
+  //   if (cachedApiResponse.data.status === 'generating') {
+  //     return NextResponse.json(cachedApiResponse.data);
+  //   }
+  // }
 
   try {
+    // retrieve existing blob from Vercel Blob storage
     const existingBlob = await head(blobKey, { token: NEWSLETTER_READ_WRITE_TOKEN }).catch(() => null);
 
     if (existingBlob) {
@@ -52,11 +54,12 @@ export async function GET(
         blobUrl: existingBlob.url,
         message: 'Newsletter is generating (blob exists but may be placeholder).'
       };
-      apiResponseCache.set(slug, { timestamp: Date.now(), data: responseData });
+      // apiResponseCache.set(slug, { timestamp: Date.now(), data: responseData });
       return NextResponse.json(responseData);
     }
 
-    // Extract topics from slug
+    // Extract topics from slug (aka route parameter)
+    // Expected route format: YYYY-MM-DD-topic1~topic2~topic3
     let topics: string[] = [];
     const datePattern = /^(\d{4}-\d{2}-\d{2})-/;
     const dateMatch = slug.match(datePattern);
@@ -92,7 +95,7 @@ export async function GET(
       blobUrl: placeholderBlob.url,
       message: 'Newsletter generation started.'
     };
-    apiResponseCache.set(slug, { timestamp: Date.now(), data: responseData });
+    // apiResponseCache.set(slug, { timestamp: Date.now(), data: responseData });
     return NextResponse.json(responseData);
 
   } catch (error) {
