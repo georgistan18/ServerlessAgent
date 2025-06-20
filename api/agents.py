@@ -187,37 +187,41 @@ async def generate_research(request: TopicsRequest):
     topics = request.topics
     if not topics:
         return {"error": "No topics provided."}
-    
-    # Get current date and yesterday for fresh news focus
+
+    # Combine into one string like: "manufacturer: Olympus"
+    combined = " ".join(topics).strip().lower()
+
+    # Determine entity type and name
+    import re
+    match = re.match(r"(manufacturer|dealer|asset):\s*(.+)", combined, re.IGNORECASE)
+    if match:
+        entity_type = match.group(1).lower()
+        company_name = match.group(2).strip()
+    else:
+        # fallback if no prefix given
+        entity_type = "manufacturer"
+        company_name = combined
+
     from datetime import datetime, timedelta
     today = datetime.now()
     yesterday = today - timedelta(days=1)
     today_str = today.strftime("%B %d, %Y")
     yesterday_str = yesterday.strftime("%B %d, %Y")
-    
-    # Compose a prompt by joining the topics
-    company_name = ", ".join(topics)
+
     user_prompt = (
-        f"Today is {today_str}. I need you to research and analyze {company_name} comprehensively. "
-        f"IMPORTANT: Include a structured JSON at the end with key data points for analysis. "
+        f"Today is {today_str}. I need you to research and analyze {company_name} as a {entity_type} company. "
+        f"IMPORTANT: Include a structured JSON at the end with key data points for vetting. "
         f"Focus on recent developments from the last 30 days (since {yesterday_str}), "
         f"but include historical context too."
     )
-    
+
     # Run the research agent
     result = await Runner.run(research_agent, user_prompt)
     raw_content = result.final_output
 
-    import re
     import json
-
-    # extract json from markdown
+    import re
     def extract_json_from_markdown(text):
-        """
-        Extracts the last JSON block from the markdown test (enclosed in ```json ... ```)
-        Returns a Python dict or None if parsing fails
-        This parsed object is then available to be processed by rules
-        """
         match = re.search(r"```json\s*(\{.*?\})\s*```", text, re.DOTALL)
         if match:
             try:
@@ -237,34 +241,28 @@ async def generate_research(request: TopicsRequest):
             "error": "Structured JSON could not be parsed."
         }
 
-    # apply rules to structured data
+    # TODO: for now we only have manufacturer rules
+    # later add logic for dealer / asset
     flags = {}
     explanations = []
-
     for key, rule in RULES.items():
         try:
             result = evaluate_rule(key, structured_data)
             flags[key] = result["flag"]
-
             explanation = result["prompt"].format(flag=result["flag"], **structured_data)
             explanations.append(f"### {rule['name']} ({result['flag']})\n{explanation}")
-
         except Exception as e:
             flags[key] = "Error"
             explanations.append(f"### {rule['name']} (Error)\n{str(e)}\n")
 
-    # create a summary prompt for the AI agent to generate a markdown section
     summary_prompt = (
         "Based on the following company evaluation flags, write a markdown risk summary section explaining each risk in plain English. "
         "Use 🚩 for 'Review', ⚠️ for 'Monitor', ✅ for 'OK'. Format nicely with headers and bullet points if needed.\n\n"
-    + "\n\n".join(explanations)
-    )
+    + "\n\n".join(explanations))
 
-    # ask the formatting agent to turn the above into a markdown section
     summary_result = await Runner.run(formatting_agent, summary_prompt)
     risk_summary = summary_result.final_output
 
-    # return everything
     return {
         "content": raw_content,
         "structured_data": structured_data,
@@ -272,7 +270,7 @@ async def generate_research(request: TopicsRequest):
         "risk_summary": risk_summary,
         "error": None
     }
-    
+
             
 @app.post("/format")
 async def format_newsletter(request: FormatRequest):
