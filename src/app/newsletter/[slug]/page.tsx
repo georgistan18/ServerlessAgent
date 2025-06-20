@@ -13,7 +13,6 @@ import remarkGfm from 'remark-gfm';
 import { Bot } from 'lucide-react';
 import { newsletterStyles } from '@/lib/newsletter-styles';
 import { markdownComponents } from '@/lib/markdown-components';
-import { blob } from 'stream/consumers';
 
 // Define types for the structured data
 interface StructuredData {
