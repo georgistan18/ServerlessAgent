@@ -9,16 +9,59 @@ from datetime import datetime
 # evaluate the input and return a risk flag based on the rules
 
 # validate if we’re getting the required fields from the research output and supplement them via scraping or follow-ups
+
 REQUIRED_DATA = {
-    "business_age": ["registration_year", "status", "last_year_report"],
-    "business_model_viability": ["market_presence", "dealer_network", "revenue_trends"],
-    "product_dependency": ["top_product_revenue_share", "product_lines"],
-    "customer_concentration": ["top_50_percent_revenue", "num_clients", "top3_clients_share"],
-    "supplier_concentration": ["top_50_percent_cogs", "top3_suppliers_share"],
-    "asset_traceability": ["traceability_system", "methods", "since"],
-    "esg_compliance": ["esg_policy", "certifications", "incidents"],
-    "cybersecurity": ["certifications", "measures", "incidents"],
-    "corporate_rating": ["credit_rating", "agency"]
+    # Manufacturer-specific
+     "business_age": ["registration_year", "status", "last_year_report"],
+     "business_model_viability": ["market_presence", "dealer_network", "revenue_trends"],
+     "product_dependency": ["top_product_revenue_share", "product_lines"],
+     "customer_concentration": ["top_50_percent_revenue", "num_clients", "top3_clients_share"],
+     "supplier_concentration": ["top_50_percent_cogs", "top3_suppliers_share"],
+     "asset_traceability": ["traceability_system", "methods", "since"],
+     "esg_compliance": ["esg_policy", "certifications", "incidents"],
+     "cybersecurity": ["certifications", "measures", "incidents"],
+     "corporate_rating": ["credit_rating", "agency"],
+
+     # Dealer-specific
+    "dealer_business_model_viability": ["revenue_trend", "net_profitability", "specialisation"],
+    "tax_compliance": ["last_check"],
+    "legal_disputes": ["open_cases", "severity", "news"],
+    "reputation": ["negative_news_hits", "media_score"],
+    "beneficial_owner_aml": ["ubo_verified", "pep", "ownership_chain_depth"],
+    "sanctions_watchlists": ["listed", "watchlist_hits"],
+
+    # Asset-specific
+    "market_demand": ["market_demand_news"],
+    "emission_compliance": ["emission_standard", "tech_support_end_year"],
+    "asset_model_year": ["year_manufacturing_model"]
+}
+
+RULES_BY_MODULE = {
+     "manufacturer": [ 
+        "business_age",
+        "business_model_viability",
+        "product_dependency",
+        "customer_concentration",
+        "supplier_concentration",
+        "asset_traceability",
+        "esg_compliance",
+        "cybersecurity",
+        "corporate_rating"
+],
+
+     "dealer": [
+         "business_age",
+         "business_model_viability",
+         "customer_concentration",
+         "supplier_concentration",
+         "esg_compliance"
+
+],
+
+     "asset": [
+        "asset_traceability",
+        "esg_compliance"
+]
 }
 
 # logic and templates for each rule
@@ -206,6 +249,142 @@ RULES = {
         }
     },
 
+    "tax_compliance": {
+        "name": "Tax Compliance",
+        "key_fields": ["last_check"],
+        "prompt_template": (
+            "Act as a compliance officer. Evaluate whether the company has had recent tax compliance checks.\n"
+            "Data: last_check={last_check}"
+        ),
+        "flag_logic": "tax_compliance",
+        "example_ok": "Tax check was successfully completed in 2024.",
+        "on_flag": {
+            "finding": "No recent tax check was found or issues were flagged.",
+            "option_1": "Request confirmation of the last successful tax filing.",
+            "option_2": "Could you provide documentation or confirmation of the most recent tax compliance review?",
+            "default": "Keep Flag"
+        }
+    },
+
+    "legal_disputes": {
+        "name": "Legal Disputes",
+        "key_fields": ["open_cases", "severity", "news"],
+        "prompt_template": (
+            "Act as a legal analyst. Check if the company is facing any legal issues.\n"
+            "Data: open_cases={open_cases}, severity={severity}, news={news}"
+        ),
+        "flag_logic": "legal_disputes",
+        "example_ok": "No active legal cases reported.",
+        "on_flag": {
+            "finding": "Ongoing legal disputes with medium to high severity were detected.",
+            "option_1": "Request details about ongoing legal proceedings.",
+            "option_2": "Can you clarify if the company is involved in any pending legal actions?",
+            "default": "Keep Flag"
+        }
+    },
+
+    "reputation": {
+        "name": "Reputation",
+        "key_fields": ["negative_news_hits", "media_score"],
+        "prompt_template": (
+            "Act as a media analyst. Review negative news hits and media coverage score.\n"
+            "Data: negative_news_hits={negative_news_hits}, media_score={media_score}"
+        ),
+        "flag_logic": "reputation",
+        "example_ok": "No notable negative press coverage found.",
+        "on_flag": {
+            "finding": "Numerous recent media reports suggest reputational issues.",
+            "option_1": "Request clarification regarding negative news or public perception.",
+            "option_2": "Could you address any recent negative press or media coverage?",
+            "default": "Keep Flag"
+        }
+    },
+
+    "beneficial_owner_aml": {
+        "name": "Beneficial Ownership & AML",
+        "key_fields": ["ubo_verified", "pep", "ownership_chain_depth"],
+        "prompt_template": (
+            "Act as a risk analyst. Review AML status, UBO transparency, and potential exposure to PEPs.\n"
+            "Data: ubo_verified={ubo_verified}, pep={pep}, ownership_chain_depth={ownership_chain_depth}"
+        ),
+        "flag_logic": "beneficial_owner_aml",
+        "example_ok": "Ownership is fully transparent and no PEPs were found.",
+        "on_flag": {
+            "finding": "Ownership transparency is unclear and potential PEP exposure exists.",
+            "option_1": "Request full ownership structure and AML documentation.",
+            "option_2": "Can you share ownership documents and confirm if any PEPs are involved?",
+            "default": "Keep Flag"
+        }
+    },
+
+    "sanctions_watchlists": {
+        "name": "Sanctions & Watchlists",
+        "key_fields": ["listed", "watchlist_hits"],
+        "prompt_template": (
+            "Act as a compliance analyst. Check if the company or executives are listed on any sanctions or watchlists.\n"
+            "Data: listed={listed}, watchlist_hits={watchlist_hits}"
+        ),
+        "flag_logic": "sanctions_watchlists",
+        "example_ok": "Company and individuals are not on any international watchlists.",
+        "on_flag": {
+            "finding": "The company or its stakeholders appear on international watchlists.",
+            "option_1": "Request details on any related legal or compliance documentation.",
+            "option_2": "Can you confirm that neither the company nor stakeholders are listed on any regulatory watchlists?",
+            "default": "Keep Flag"
+        }
+    },
+
+    "market_demand": {
+        "name": "Market Demand",
+        "key_fields": ["market_demand_news"],
+        "prompt_template": (
+            "Act as a market analyst. Determine if the asset model has sufficient demand.\n"
+            "Data: market_demand_news={market_demand_news}"
+        ),
+        "flag_logic": "market_demand",
+        "example_ok": "The asset model is in high demand with strong recent press coverage.",
+        "on_flag": {
+            "finding": "Negative market feedback or declining demand trends found.",
+            "option_1": "Request clarification regarding market feedback for the model.",
+            "option_2": "Can you share recent sales trends or demand signals for the asset model?",
+            "default": "Keep Flag"
+        }
+    },
+
+    "emission_compliance": {
+        "name": "Emission Compliance",
+        "key_fields": ["emission_standard", "tech_support_end_year"],
+        "prompt_template": (
+            "Act as a compliance analyst. Check whether the asset complies with relevant emission standards.\n"
+            "Data: emission_standard={emission_standard}, tech_support_end_year={tech_support_end_year}"
+        ),
+        "flag_logic": "emission_compliance",
+        "example_ok": "The asset meets Euro 6 standards and is supported through 2030.",
+        "on_flag": {
+            "finding": "Asset does not meet modern emission standards or is nearing support end-of-life.",
+            "option_1": "Request documentation of emission compliance and support plans.",
+            "option_2": "Can you confirm this asset model's emission class and technical support availability?",
+            "default": "Keep Flag"
+        }
+    },
+
+    "asset_model_year": {
+        "name": "Asset Model Year",
+        "key_fields": ["year_manufacturing_model"],
+        "prompt_template": (
+            "Act as a lifecycle risk analyst. Evaluate how old the asset model is.\n"
+            "Data: year_manufacturing_model={year_manufacturing_model}"
+        ),
+        "flag_logic": "asset_model_year",
+        "example_ok": "Manufactured in 2022, the model is still considered recent.",
+        "on_flag": {
+            "finding": "Model is over 10 years old and may have reduced market appeal.",
+            "option_1": "Request clarification on why this asset model is still being sold.",
+            "option_2": "Can you confirm the year this model was first released and its ongoing commercial viability?",
+            "default": "Keep Flag"
+        }
+    }
+
 }
 
 # Functions for each flag-logic block
@@ -236,6 +415,9 @@ def business_age(data: dict) -> str:
         pass
 
     return "Review"  # default fallback
+
+# def dealer_business_age(data: dict) -> str:
+#     return business_age(data)
 
 def business_model_viability(data: dict) -> str:
     market_presence = data.get("market_presence", "").lower()
@@ -349,4 +531,102 @@ def corporate_rating(data: dict) -> str:
         return "OK"
     return "Review"
 
+def dealer_business_model_viability(data: dict) -> str:
+    trend = data.get("revenue_trend", "").lower()
+    profit = data.get("net_profitability", "").lower()
+    specialization = data.get("specialisation", "").lower()
 
+    if "decline" in trend and "low" in profit:
+        return "Flag"
+    if "moderate" in profit or "decline" in trend:
+        return "Monitor"
+    if "specialized" in specialization and "positive" in profit:
+        return "OK"
+    return "Review"
+
+def tax_compliance(data: dict) -> str:
+    last_check = data.get("last_check", "").lower()
+    if "tax evasion" in last_check or "fine" in last_check:
+        return "Flag"
+    elif "audit" in last_check:
+        return "Monitor"
+    elif "clear" in last_check or "no issues" in last_check:
+        return "OK"
+    return "Review"
+
+def legal_disputes(data: dict) -> str:
+    cases = data.get("open_cases", "")
+    severity = data.get("severity", "").lower()
+    try:
+        if int(cases) > 10 or "major" in severity:
+            return "Flag"
+        elif int(cases) > 3:
+            return "Review"
+        else:
+            return "OK"
+    except:
+        return "Review"
+
+def reputation(data: dict) -> str:
+    hits = int(data.get("negative_news_hits", 0))
+    media_score = float(data.get("media_score", 5.0))
+    if hits > 10 or media_score < 2:
+        return "Flag"
+    elif hits > 5:
+        return "Monitor"
+    return "OK"
+
+def beneficial_owner_aml(data: dict) -> str:
+    pep = data.get("pep", "").lower()
+    ubo = data.get("ubo_verified", "").lower()
+    chain_depth = int(data.get("ownership_chain_depth", 0))
+
+    if pep == "yes":
+        return "Flag"
+    if ubo == "no" or chain_depth > 3:
+        return "Review"
+    return "OK"
+
+def sanctions_watchlists(data: dict) -> str:
+    listed = data.get("listed", "").lower()
+    hits = int(data.get("watchlist_hits", 0))
+
+    if listed == "yes" or hits > 5:
+        return "Flag"
+    elif hits > 0:
+        return "Monitor"
+    return "OK"
+
+def market_demand(data: dict) -> str:
+    news = data.get("market_demand_news", "").lower()
+    if "declining" in news or "recall" in news:
+        return "Flag"
+    elif "weak" in news:
+        return "Monitor"
+    elif "high" in news or "strong" in news:
+        return "OK"
+    return "Review"
+
+def emission_compliance(data: dict) -> str:
+    standard = data.get("emission_standard", "").lower()
+    support_year = int(data.get("tech_support_end_year", 0))
+    current_year = datetime.now().year
+    if "euro 6" in standard or "eu compliant" in standard:
+        if support_year >= current_year + 3:
+            return "OK"
+        elif current_year <= support_year < current_year + 3:
+            return "Monitor"
+        else:
+            return "Review"
+    return "Flag"
+
+def asset_model_year(data: dict) -> str:
+    year = int(data.get("year_manufacturing_model", 0))
+    current_year = datetime.now().year
+    if year >= current_year - 1:
+        return "OK"
+    elif year >= current_year - 3:
+        return "Monitor"
+    elif year < current_year - 3:
+        return "Review"
+    return "Flag"

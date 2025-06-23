@@ -11,7 +11,7 @@ from pydantic import BaseModel
 from agents import Agent, Runner, WebSearchTool, ModelSettings
 
 # givve access to the rule evaluation and prompt templates
-from .rules.rules_logic import RULES
+from .rules.rules_logic import RULES, RULES_BY_MODULE
 from .rules.rule_engine import evaluate_rule
 
 # Load OpenAI API key from environment
@@ -241,11 +241,11 @@ async def generate_research(request: TopicsRequest):
             "error": "Structured JSON could not be parsed."
         }
 
-    # TODO: for now we only have manufacturer rules
-    # later add logic for dealer / asset
     flags = {}
     explanations = []
-    for key, rule in RULES.items():
+    criteria_list = RULES_BY_MODULE.get(entity_type, [])
+    for key in criteria_list:
+        rule = RULES[key]
         try:
             result = evaluate_rule(key, structured_data)
             flags[key] = result["flag"]
@@ -264,32 +264,56 @@ async def generate_research(request: TopicsRequest):
     risk_summary = summary_result.final_output
 
     return {
-        "content": raw_content,
-        "structured_data": structured_data,
-        "flags": flags,
-        "risk_summary": risk_summary,
-        "error": None
-    }
+    "content": raw_content,
+    "structured_data": structured_data,
+    "flags": flags,
+    "risk_summary": risk_summary,
+    "error": None,
+    "topics": [f"{entity_type}: {company_name}"],
+    "entity_type": entity_type,
+    "company_name": company_name
+}
 
             
 @app.post("/format")
 async def format_newsletter(request: FormatRequest):
+    import re  
     raw_content = request.raw_content
-    
-    company_name = request.topics[0]
-    
     
     if not raw_content:
         return {"error": "No content provided."}
     
+    raw_topic = request.topics[0]  # e.g., "dealer: totalsoft"
+    match = re.match(r"(manufacturer|dealer|asset):\s*(.+)", raw_topic, re.IGNORECASE)
+    if match:
+        entity_type = match.group(1).lower()
+        company_name = match.group(2).strip()
+        entity = entity_type.capitalize()
+        company = company_name.title()
+        formatted_title = f"Comprehensive Risk Analysis of {entity}: {company}"
+    else:
+        entity_type = "manufacturer"
+        company_name = raw_topic.strip()
+        entity = entity_type.capitalize()
+        company = company_name.title()
+        formatted_title = f"Comprehensive Risk Analysis of {company}"
+
     # Create formatting prompt
-    user_prompt = f"Transform this research content into a beautifully formatted company analysis report for {company_name}. Apply professional markdown formatting:\n\n{raw_content}"
+    user_prompt = (
+        f"Transform this research content into a beautifully formatted company analysis report titled '{formatted_title}'. "
+        f"Apply professional markdown formatting:\n\n{raw_content}"
+    )
     
     # Run the formatting agent
     result = await Runner.run(formatting_agent, user_prompt)
     formatted_content = result.final_output
     
-    return {"content": formatted_content}
+    return {
+        "content": formatted_content,
+        "title": formatted_title,
+        "entity_type": entity_type,
+        "company_name": company_name,
+    }
 
 # IMPORTANT: Handler for Vercel serverless functions
 # Vercel's Python runtime will automatically handle FastAPI apps

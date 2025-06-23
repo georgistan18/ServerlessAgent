@@ -7,6 +7,7 @@
 # coordinate which function to call for each `flag_logic` / evaluation
 
 from .rules_logic import (
+    # manufacturer
     business_age,
     business_model_viability,
     product_dependency,
@@ -16,9 +17,23 @@ from .rules_logic import (
     esg_compliance,
     cybersecurity,
     corporate_rating,
+
+    # dealer
+    # business_model_viability,
+    tax_compliance,
+    legal_disputes,
+    reputation,
+    beneficial_owner_aml,
+    sanctions_watchlists,
+
+    # asset
+    market_demand,
+    emission_compliance,
+    asset_model_year,
 )
 
 RULES_FUNCTIONS = {
+    # manufacturer
     "business_age": business_age,
     "business_model_viability": business_model_viability,
     "product_dependency": product_dependency,
@@ -28,6 +43,20 @@ RULES_FUNCTIONS = {
     "esg_compliance": esg_compliance,
     "cybersecurity": cybersecurity,
     "corporate_rating": corporate_rating,
+
+    # dealer
+    # "dealer_business_model_viability": dealer_business_model_viability,
+    "tax_compliance": tax_compliance,
+    "legal_disputes": legal_disputes,
+    "reputation": reputation,
+    "beneficial_owner_aml": beneficial_owner_aml,
+    "sanctions_watchlists": sanctions_watchlists,
+
+    # asset
+    "market_demand": market_demand,
+    "emission_compliance": emission_compliance,
+    "asset_model_year": asset_model_year,
+
 }
 
 def evaluate_rule(criteria: str, data: dict) -> dict:
@@ -51,6 +80,3 @@ def evaluate_rule(criteria: str, data: dict) -> dict:
         "suggested_action": rule_meta.get("suggested_action"),
         "explanation_hint": rule_meta.get("how_to_explain") # helper from LLM
     }
-
-
-    
